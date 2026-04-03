@@ -123,7 +123,7 @@ export default function App() {
       `Horario: ${hora}`
     ].join("\n");
 
-    const url = `https://wa.me/5573999883856?text=${encodeURIComponent(mensagem)}`;
+    const url = `https://wa.me/5524998747229?text=${encodeURIComponent(mensagem)}`;
     setStatus("Abrindo WhatsApp para finalizar o agendamento 🔥");
     window.open(url, "_blank", "noopener,noreferrer");
   }
@@ -461,8 +461,8 @@ export default function App() {
 
             <div className="contact-item">
               <strong>Telefone</strong>
-              <a className="contact-link" href="tel:+5573999883856">
-                (73) 99988-3856
+              <a className="contact-link" href="tel:+5524998747229">
+                24 998747229
               </a>
             </div>
 
