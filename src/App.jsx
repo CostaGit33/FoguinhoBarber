@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+const assetBase = import.meta.env.BASE_URL;
+
 const sections = [
   { id: "home", label: "Inicio" },
   { id: "servicos", label: "Servicos" },
@@ -21,7 +23,7 @@ const professionals = [
   {
     name: "Foguinho",
     role: "Barbeiro",
-    image: "/foguinho1.jpeg",
+    image: `${assetBase}foguinho1.jpeg`,
     highlight: "Presenca forte, estilo marcante e assinatura da casa.",
     spotlightTitle: "Identidade forte",
     spotlightMeta: "Visual limpo, contraste alto e foco total no que importa."
@@ -29,7 +31,7 @@ const professionals = [
   {
     name: "Miguel",
     role: "Barbeiro",
-    image: "/foguinho2.jpeg",
+    image: `${assetBase}foguinho2.jpeg`,
     highlight: "Corte bem resolvido, atendimento leve e experiencia sem enrolacao.",
     spotlightTitle: "Barba, cabelo e resenha",
     spotlightMeta: "Atendimento que mistura tecnica, conforto e conversa boa na cadeira."
@@ -37,7 +39,7 @@ const professionals = [
   {
     name: "Lucas",
     role: "Barbeiro",
-    image: "/foguinho3.jpeg",
+    image: `${assetBase}foguinho3.jpeg`,
     highlight: "Leitura de estilo e execucao cuidadosa em cada detalhe.",
     spotlightTitle: "Agendamento mais rapido 🔥",
     spotlightMeta: "A foto do barbeiro ja leva voce para marcar sem perder tempo."
@@ -49,7 +51,7 @@ const today = new Date().toISOString().split("T")[0];
 function SectionTitle({ id, children }) {
   return (
     <div className="section-heading">
-      <img className="section-logo" src="/logo.png" alt="Logo da Foguinho Barber" />
+      <img className="section-logo" src={`${assetBase}logo.png`} alt="Logo da Foguinho Barber" />
       <h2 id={id}>{children}</h2>
     </div>
   );
@@ -130,7 +132,7 @@ export default function App() {
     <>
       <header className="topbar">
         <div className="brand">
-          <img className="brand-logo" src="/logo.png" alt="Logo da Foguinho Barber" />
+          <img className="brand-logo" src={`${assetBase}logo.png`} alt="Logo da Foguinho Barber" />
           <span>Foguinho Barber 🔥</span>
         </div>
         <button
@@ -454,7 +456,7 @@ export default function App() {
               >
                 Avenida Paulino Mendes Lima, 232, Centro, Eunapolis/BA
               </a>
-              <img className="location-photo" src="/faixada.png" alt="Fachada da Foguinho Barber" />
+              <img className="location-photo" src={`${assetBase}faixada.png`} alt="Fachada da Foguinho Barber" />
             </div>
 
             <div className="contact-item">
