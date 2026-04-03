@@ -21,7 +21,7 @@ const services = [
 
 const professionals = [
   {
-    name: "Foguinho",
+    name: "Romulo",
     role: "Barbeiro",
     image: `${assetBase}foguinho1.jpeg`,
     highlight: "Presenca forte, estilo marcante e assinatura da casa.",
@@ -29,7 +29,7 @@ const professionals = [
     spotlightMeta: "Visual limpo, contraste alto e foco total no que importa."
   },
   {
-    name: "Miguel",
+    name: "Taz",
     role: "Barbeiro",
     image: `${assetBase}foguinho2.jpeg`,
     highlight: "Corte bem resolvido, atendimento leve e experiencia sem enrolacao.",
