@@ -152,6 +152,47 @@ select {
   box-shadow: var(--shadow);
 }
 
+.install-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 22px;
+  padding: 20px 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at right top, rgba(255, 255, 255, 0.12), transparent 32%),
+    linear-gradient(180deg, rgba(24, 24, 24, 0.96), rgba(11, 11, 11, 0.96));
+  box-shadow: var(--shadow);
+}
+
+.install-banner strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 1.08rem;
+}
+
+.install-banner-kicker {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.install-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.install-banner-button {
+  width: auto;
+  min-width: 170px;
+}
+
 .hero {
   padding: 34px;
 }
@@ -761,8 +802,19 @@ h2 {
     align-items: stretch;
   }
 
+  .install-banner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .install-banner-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
   .hero-primary,
-  .secondary-button {
+  .secondary-button,
+  .install-banner-button {
     width: 100%;
   }
 

@@ -26,6 +26,7 @@ import BookingSection from "./components/BookingSection";
 import ContactSection from "./components/ContactSection";
 
 const today = new Date().toISOString().split("T")[0];
+const installPromptDismissKey = "foguinho-barber-install-dismissed";
 
 export default function App() {
   const [activeSection, setActiveSection] = useState("home");
@@ -39,6 +40,8 @@ export default function App() {
     hora: ""
   }));
   const [status, setStatus] = useState("");
+  const [installPromptEvent, setInstallPromptEvent] = useState(null);
+  const [isInstallBannerVisible, setIsInstallBannerVisible] = useState(false);
 
   const selectedProfessional = professionals.find(
     (professional) => professional.name === formData.profissional
@@ -61,6 +64,33 @@ export default function App() {
       saveLastService(formData.servico);
     }
   }, [formData.servico]);
+
+  useEffect(() => {
+    function handleBeforeInstallPrompt(event) {
+      event.preventDefault();
+      setInstallPromptEvent(event);
+
+      const dismissedAt = window.localStorage.getItem(installPromptDismissKey);
+      if (!dismissedAt) {
+        setIsInstallBannerVisible(true);
+      }
+    }
+
+    function handleAppInstalled() {
+      setInstallPromptEvent(null);
+      setIsInstallBannerVisible(false);
+      window.localStorage.removeItem(installPromptDismissKey);
+      setStatus("App instalado com sucesso no seu aparelho.");
+    }
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
 
   function changeSection(sectionId) {
     setActiveSection(sectionId);
@@ -106,6 +136,29 @@ export default function App() {
   function cancelBooking(bookingId) {
     setBookings((current) => current.filter((booking) => booking.id !== bookingId));
     setStatus("Agendamento removido do painel local.");
+  }
+
+  function dismissInstallBanner() {
+    window.localStorage.setItem(installPromptDismissKey, String(Date.now()));
+    setIsInstallBannerVisible(false);
+  }
+
+  async function promptInstall() {
+    if (!installPromptEvent) {
+      return;
+    }
+
+    installPromptEvent.prompt();
+    const result = await installPromptEvent.userChoice;
+
+    if (result.outcome === "accepted") {
+      setStatus("Instalacao iniciada. Confirme no seu navegador para concluir.");
+    } else {
+      setStatus("Tudo certo. Voce pode instalar o app quando quiser.");
+    }
+
+    setInstallPromptEvent(null);
+    setIsInstallBannerVisible(false);
   }
 
   function handleSubmit(event) {
@@ -161,6 +214,27 @@ export default function App() {
       />
 
       <main className="page">
+        {isInstallBannerVisible && installPromptEvent ? (
+          <section className="install-banner" aria-label="Instalar aplicativo">
+            <div>
+              <p className="install-banner-kicker">Atalho no celular</p>
+              <strong>Instale a Foguinho Barber como app</strong>
+              <p className="meta">
+                Abra mais rapido, use em tela cheia e tenha uma experiencia mais parecida com app
+                nativo.
+              </p>
+            </div>
+            <div className="install-banner-actions">
+              <button className="btn install-banner-button" type="button" onClick={promptInstall}>
+                Instalar app
+              </button>
+              <button className="chip-button" type="button" onClick={dismissInstallBanner}>
+                Agora nao
+              </button>
+            </div>
+          </section>
+        ) : null}
+
         <HomeSection
           active={activeSection === "home"}
           professionals={professionals}
