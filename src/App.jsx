@@ -23,7 +23,7 @@ const professionals = [
   {
     name: "Romulo",
     role: "Barbeiro",
-    image: `${assetBase}foguinho1.jpeg`,
+    image: `${assetBase}foguinho10.jpeg`,
     highlight: "Presenca forte, estilo marcante e assinatura da casa.",
     spotlightTitle: "Identidade forte",
     spotlightMeta: "Visual limpo, contraste alto e foco total no que importa."
@@ -31,7 +31,7 @@ const professionals = [
   {
     name: "Taz",
     role: "Barbeiro",
-    image: `${assetBase}foguinho2.jpeg`,
+    image: `${assetBase}foguinho20.jpeg`,
     highlight: "Corte bem resolvido, atendimento leve e experiencia sem enrolacao.",
     spotlightTitle: "Barba, cabelo e resenha",
     spotlightMeta: "Atendimento que mistura tecnica, conforto e conversa boa na cadeira."
