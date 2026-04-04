@@ -1,113 +1,82 @@
-import { useState } from "react";
-
-const assetBase = import.meta.env.BASE_URL;
-
-const sections = [
-  { id: "home", label: "Inicio" },
-  { id: "servicos", label: "Servicos" },
-  { id: "profissionais", label: "Profissionais" },
-  { id: "agendamento", label: "Agendar" },
-  { id: "contato", label: "Contato" }
-];
-
-const services = [
-  { name: "Corte", price: "R$45", meta: "R$45 - duracao media de 30 minutos" },
-  { name: "Barba", price: "R$40", meta: "R$40 - duracao media de 30 minutos" },
-  { name: "Cabelo + Barba", price: "R$80", meta: "R$80 - duracao media de 60 minutos" },
-  { name: "Combo Completo", price: "R$90", meta: "R$90 - atendimento completo" },
-  { name: "Corte Feminino", price: "R$60", meta: "R$60 - finalizacao com atencao aos detalhes" },
-  { name: "Corte Infantil", price: "R$45", meta: "R$45 - cuidado e conforto para os pequenos" }
-];
-
-const weeklySchedule = {
-  0: null,
-  1: { label: "Segunda-Feira", open: "08:00", close: "19:00" },
-  2: { label: "Terca-Feira", open: "08:00", close: "19:00" },
-  3: { label: "Quarta-Feira", open: "08:00", close: "19:00" },
-  4: { label: "Quinta-Feira", open: "08:00", close: "19:00" },
-  5: { label: "Sexta-Feira", open: "08:00", close: "20:00" },
-  6: { label: "Sabado", open: "08:00", close: "18:00" }
-};
-
-const professionals = [
-  {
-    name: "Foguinho 🔥",
-    role: "Barbeiro",
-    image: `${assetBase}foguinho.jpeg`,
-    highlight: "Presenca forte, estilo marcante e assinatura da casa.",
-    spotlightTitle: "Identidade forte",
-    spotlightMeta: "Visual limpo, contraste alto e foco total no que importa."
-  },
-  {
-    name: "Miguel",
-    role: "Barbeiro",
-    image: `${assetBase}miguel.jpeg`,
-    highlight: "Corte bem resolvido, atendimento leve e experiencia sem enrolacao.",
-    spotlightTitle: "Barba, cabelo e resenha",
-    spotlightMeta: "Atendimento que mistura tecnica, conforto e conversa boa na cadeira."
-  },
-  {
-    name: "Pedro Lucas",
-    role: "Barbeiro",
-    image: `${assetBase}pedrolucas.jpeg`,
-    highlight: "Leitura de estilo e execucao cuidadosa em cada detalhe.",
-    spotlightTitle: "Agendamento mais rapido 🔥",
-    spotlightMeta: "A foto do barbeiro ja leva voce para marcar sem perder tempo."
-  },
-  {
-    name: "Henri",
-    role: "Barbeiro",
-    image: `${assetBase}henri.jpeg`,
-    highlight: "Atendimento atento, visual alinhado e acabamento feito com capricho.",
-    spotlightTitle: "Estilo com precisao",
-    spotlightMeta: "Cortes bem definidos com foco no detalhe e na experiencia do cliente."
-  },
-  {
-    name: "Anderson",
-    role: "Barbeiro",
-    image: `${assetBase}anderson.jpeg`,
-    highlight: "Presenca leve, execucao consistente e corte pensado para o seu estilo.",
-    spotlightTitle: "Presenca na medida",
-    spotlightMeta: "Uma cadeira para quem quer praticidade sem abrir mao de qualidade."
-  },
-  {
-    name: "Kevson",
-    role: "Barbeiro",
-    image: `${assetBase}kevson.jpeg`,
-    highlight: "Cortes modernos, acabamento limpo e leitura rapida do que combina com voce.",
-    spotlightTitle: "Visual atualizado",
-    spotlightMeta: "Opcoes para quem quer renovar o visual e sair pronto para qualquer ocasiao."
-  }
-];
+import { useEffect, useState } from "react";
+import {
+  business,
+  professionals,
+  sections,
+  services,
+  weeklySchedule
+} from "./data";
+import {
+  createBooking,
+  formatCurrency,
+  formatDate,
+  getAvailableSlots,
+  getDaySchedule,
+  loadBookings,
+  loadLastService,
+  saveBookings,
+  saveLastService,
+  sortBookings
+} from "./booking";
+import Header from "./components/Header";
+import HomeSection from "./components/HomeSection";
+import ServicesSection from "./components/ServicesSection";
+import ProfessionalsSection from "./components/ProfessionalsSection";
+import BookingSection from "./components/BookingSection";
+import ContactSection from "./components/ContactSection";
 
 const today = new Date().toISOString().split("T")[0];
-
-function SectionTitle({ id, children }) {
-  return (
-    <div className="section-heading">
-      <img className="section-logo" src={`${assetBase}logo.png`} alt="Logo da Foguinho Barber" />
-      <h2 id={id}>{children}</h2>
-    </div>
-  );
-}
 
 export default function App() {
   const [activeSection, setActiveSection] = useState("home");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [formData, setFormData] = useState({
+  const [bookings, setBookings] = useState(() => loadBookings());
+  const [formData, setFormData] = useState(() => ({
     nome: "",
-    servico: "",
+    servico: loadLastService(),
     profissional: "",
     data: "",
     hora: ""
-  });
+  }));
   const [status, setStatus] = useState("");
+
+  const selectedProfessional = professionals.find(
+    (professional) => professional.name === formData.profissional
+  );
+  const selectedService = services.find((service) => service.name === formData.servico);
+  const selectedDaySchedule = getDaySchedule(formData.data);
+  const availableSlots = getAvailableSlots({
+    date: formData.data,
+    service: selectedService,
+    professional: formData.profissional,
+    bookings
+  });
+
+  useEffect(() => {
+    saveBookings(bookings);
+  }, [bookings]);
+
+  useEffect(() => {
+    if (formData.servico) {
+      saveLastService(formData.servico);
+    }
+  }, [formData.servico]);
+
+  function changeSection(sectionId) {
+    setActiveSection(sectionId);
+    setIsMobileMenuOpen(false);
+  }
 
   function handleChange(event) {
     const { name, value } = event.target;
+
     setFormData((current) => {
       if (name === "data") {
         return { ...current, data: value, hora: "" };
+      }
+
+      if (name === "servico" || name === "profissional") {
+        return { ...current, [name]: value, hora: "" };
       }
 
       return { ...current, [name]: value };
@@ -115,445 +84,144 @@ export default function App() {
   }
 
   function startBooking(professionalName) {
-    setFormData((current) => ({ ...current, profissional: professionalName }));
-    setStatus(`Profissional selecionado: ${professionalName}. Complete os campos para agendar.`);
-    setActiveSection("agendamento");
-    setIsMobileMenuOpen(false);
+    setFormData((current) => ({ ...current, profissional: professionalName, hora: "" }));
+    setStatus(`Profissional selecionado: ${professionalName}. Agora escolha servico, dia e horario.`);
+    changeSection("agendamento");
   }
 
   function startServiceBooking(serviceName) {
-    setFormData((current) => ({ ...current, servico: serviceName }));
-    setStatus(`Servico selecionado: ${serviceName}. Escolha o profissional e finalize o horario.`);
-    setActiveSection("agendamento");
-    setIsMobileMenuOpen(false);
+    const selected = services.find((service) => service.name === serviceName);
+    setFormData((current) => ({ ...current, servico: serviceName, hora: "" }));
+    setStatus(
+      `Servico selecionado: ${serviceName}${selected ? ` por ${formatCurrency(selected.price)}` : ""}. Escolha um profissional para continuar.`
+    );
+    changeSection("agendamento");
   }
 
-  function changeSection(sectionId) {
-    setActiveSection(sectionId);
-    setIsMobileMenuOpen(false);
+  function selectSlot(time) {
+    setFormData((current) => ({ ...current, hora: time }));
+    setStatus(`Horario ${time} reservado no formulario. Falta so confirmar pelo WhatsApp.`);
   }
 
-  const selectedProfessional = professionals.find(
-    (professional) => professional.name === formData.profissional
-  );
-  const selectedService = services.find((service) => service.name === formData.servico);
-  const selectedDate = formData.data ? new Date(`${formData.data}T12:00:00`) : null;
-  const selectedDaySchedule = selectedDate ? weeklySchedule[selectedDate.getDay()] : null;
+  function cancelBooking(bookingId) {
+    setBookings((current) => current.filter((booking) => booking.id !== bookingId));
+    setStatus("Agendamento removido do painel local.");
+  }
 
   function handleSubmit(event) {
     event.preventDefault();
 
     const { nome, servico, profissional, data, hora } = formData;
-    if (!nome.trim() || !servico || !profissional || !data || !hora) {
+    if (!nome.trim() || !servico || !profissional || !data || !hora || !selectedService || !selectedProfessional) {
       setStatus("Preencha todos os campos antes de continuar.");
       return;
     }
 
     if (!selectedDaySchedule) {
-      setStatus("A barbearia nao atende aos domingos. Escolha outro dia para agendar.");
+      setStatus("Nao atendemos aos domingos. Escolha outro dia para agendar.");
       return;
     }
 
-    if (hora < selectedDaySchedule.open || hora > selectedDaySchedule.close) {
-      setStatus(
-        `O horario escolhido esta fora do atendimento de ${selectedDaySchedule.label}: ${selectedDaySchedule.open} as ${selectedDaySchedule.close}.`
-      );
+    const slot = availableSlots.find((item) => item.time === hora);
+    if (!slot?.available) {
+      setStatus("Esse horario ja foi ocupado ou nao esta disponivel para o servico escolhido.");
       return;
     }
 
-    const dataFormatada = new Intl.DateTimeFormat("pt-BR", {
-      timeZone: "UTC",
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric"
-    }).format(new Date(`${data}T00:00:00`));
+    const booking = createBooking({ formData, selectedProfessional, selectedService });
+    const nextBookings = sortBookings([...bookings, booking]);
+    setBookings(nextBookings);
 
     const mensagem = [
-      `Ola, meu nome e ${nome.trim()}.`,
+      `Ola, meu nome e ${booking.name}.`,
       "Quero agendar:",
       "",
-      `Servico: ${servico}`,
-      `Valor: ${selectedService?.price ?? "A confirmar"}`,
-      `Profissional: ${profissional}`,
-      `Data: ${dataFormatada}`,
-      `Horario: ${hora}`
+      `Servico: ${booking.service}`,
+      `Valor: ${formatCurrency(booking.price)}`,
+      `Duracao: ${booking.duration} min`,
+      `Profissional: ${booking.professional}`,
+      `Data: ${formatDate(booking.date)}`,
+      `Horario: ${booking.time}`
     ].join("\n");
 
-    const url = `https://wa.me/5524998747229?text=${encodeURIComponent(mensagem)}`;
-    setStatus("Abrindo WhatsApp para finalizar o agendamento 🔥");
+    const url = `${business.whatsapp}?text=${encodeURIComponent(mensagem)}`;
+    setStatus("Agendamento salvo no painel local e WhatsApp aberto para confirmacao.");
     window.open(url, "_blank", "noopener,noreferrer");
   }
 
   return (
     <>
-      <header className="topbar">
-        <div className="brand">
-          <img className="brand-logo" src={`${assetBase}logo.png`} alt="Logo da Foguinho Barber" />
-          <span>Foguinho Barber 🔥</span>
-        </div>
-        <button
-          className="mobile-menu-toggle"
-          type="button"
-          aria-expanded={isMobileMenuOpen}
-          aria-controls="main-navigation"
-          onClick={() => setIsMobileMenuOpen((current) => !current)}
-        >
-          Menu
-        </button>
-        <nav
-          id="main-navigation"
-          className={`nav ${isMobileMenuOpen ? "nav-open" : ""}`}
-          aria-label="Navegacao principal"
-        >
-          {sections.map((section) => (
-            <button
-              key={section.id}
-              className="nav-button"
-              type="button"
-              onClick={() => changeSection(section.id)}
-              aria-current={activeSection === section.id ? "page" : undefined}
-            >
-              {section.label}
-            </button>
-          ))}
-        </nav>
-      </header>
+      <Header
+        business={business}
+        sections={sections}
+        activeSection={activeSection}
+        isMobileMenuOpen={isMobileMenuOpen}
+        onToggleMenu={() => setIsMobileMenuOpen((current) => !current)}
+        onChangeSection={changeSection}
+      />
 
       <main className="page">
-        <section
-          id="home"
-          className={`section ${activeSection === "home" ? "active" : ""}`}
-          aria-labelledby="home-title"
-          aria-hidden={activeSection !== "home"}
-        >
-          <div className="hero">
-            <div className="hero-header">
-              <div className="hero-copy">
-                <span className="eyebrow">💈Barba, Cabelo e Resenha</span>
-                <h1 id="home-title">Corte na regua, barba alinhada e presenca que fala antes de voce.</h1>
-                <p className="lead">
-                  A home agora coloca a equipe no centro da experiencia. Veja o estilo de cada
-                  profissional e toque na foto para iniciar o agendamento.
-                </p>
-                <div className="hero-actions">
-                  <button className="btn hero-primary" type="button" onClick={() => changeSection("agendamento")}>
-                    Agendar agora 🔥
-                  </button>
-                  <button
-                    className="secondary-button"
-                    type="button"
-                    onClick={() => changeSection("profissionais")}
-                  >
-                    Ver profissionais
-                  </button>
-                </div>
-              </div>
-            </div>
+        <HomeSection
+          active={activeSection === "home"}
+          professionals={professionals}
+          services={services}
+          onSelectProfessional={startBooking}
+          onSelectService={startServiceBooking}
+          onChangeSection={changeSection}
+        />
 
-            <div className="home-professionals" aria-label="Profissionais em destaque">
-              {professionals.map((professional) => (
-                <button
-                  key={professional.name}
-                  type="button"
-                  className="featured-professional"
-                  onClick={() => startBooking(professional.name)}
-                  aria-label={`Agendar com ${professional.name}`}
-                >
-                  <img
-                    className="featured-professional-photo"
-                    src={professional.image}
-                    alt={`Profissional ${professional.name}`}
-                  />
-                  <span className="featured-professional-overlay">
-                    <strong>{professional.name}</strong>
-                    <span>{professional.role}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
+        <ServicesSection
+          active={activeSection === "servicos"}
+          business={business}
+          services={services}
+          selectedServiceName={formData.servico}
+          onSelectService={startServiceBooking}
+        />
 
-            <div className="quick-picks">
-              <p className="quick-picks-label">Atalhos de servico</p>
-              <div className="chip-row" aria-label="Escolha rapida de servicos">
-                {services.slice(0, 4).map((service) => (
-                  <button
-                    key={service.name}
-                    type="button"
-                    className="chip-button"
-                    onClick={() => startServiceBooking(service.name)}
-                  >
-                    {service.name}
-                  </button>
-                ))}
-              </div>
-            </div>
+        <ProfessionalsSection
+          active={activeSection === "profissionais"}
+          business={business}
+          professionals={professionals}
+          onSelectProfessional={startBooking}
+        />
 
-            <ul className="list compact-list" aria-label="Destaques ligados aos profissionais">
-              {professionals.map((professional) => (
-                <li key={professional.name} className="card spotlight-card">
-                  <span className="spotlight-owner">{professional.name}</span>
-                  <strong>{professional.spotlightTitle}</strong>
-                  <span className="meta">{professional.spotlightMeta}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
+        <BookingSection
+          active={activeSection === "agendamento"}
+          business={business}
+          formData={formData}
+          status={status}
+          today={today}
+          services={services}
+          professionals={professionals}
+          selectedProfessional={selectedProfessional}
+          selectedService={selectedService}
+          selectedDaySchedule={selectedDaySchedule}
+          availableSlots={availableSlots}
+          bookings={bookings}
+          onChange={handleChange}
+          onSubmit={handleSubmit}
+          onSelectService={startServiceBooking}
+          onSelectProfessional={startBooking}
+          onSelectSlot={selectSlot}
+          onCancelBooking={cancelBooking}
+        />
 
-        <section
-          id="servicos"
-          className={`section ${activeSection === "servicos" ? "active" : ""}`}
-          aria-labelledby="servicos-title"
-          aria-hidden={activeSection !== "servicos"}
-        >
-          <SectionTitle id="servicos-title">Servicos</SectionTitle>
-          <div className="chip-row services-chip-row" aria-label="Escolha rapida de servicos">
-            {services.map((service) => (
-              <button
-                key={service.name}
-                type="button"
-                className={`chip-button ${formData.servico === service.name ? "chip-active" : ""}`}
-                onClick={() => startServiceBooking(service.name)}
-              >
-                {service.name}
-              </button>
-            ))}
-          </div>
-          <ul className="list" aria-label="Lista de servicos">
-            {services.map((service) => (
-              <li key={service.name} className="card">
-                <strong>{service.name}</strong>
-                <span className="meta">{service.meta}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section
-          id="profissionais"
-          className={`section ${activeSection === "profissionais" ? "active" : ""}`}
-          aria-labelledby="profissionais-title"
-          aria-hidden={activeSection !== "profissionais"}
-        >
-          <SectionTitle id="profissionais-title">Profissionais</SectionTitle>
-          <div className="professionals-grid" aria-label="Equipe da barbearia">
-            {professionals.map((professional) => (
-              <article key={professional.name} className="card professional-card">
-                <button
-                  type="button"
-                  className="professional-booking-button"
-                  onClick={() => startBooking(professional.name)}
-                >
-                  <img
-                    className="professional-photo"
-                    src={professional.image}
-                    alt={`Profissional ${professional.name}`}
-                  />
-                  <span className="professional-photo-overlay">Agendar com {professional.name}</span>
-                </button>
-                <div className="professional-info">
-                  <strong>{professional.name}</strong>
-                  <span className="professional-role">{professional.role}</span>
-                  <p className="meta">{professional.highlight}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section
-          id="agendamento"
-          className={`section ${activeSection === "agendamento" ? "active" : ""}`}
-          aria-labelledby="agendamento-title"
-          aria-hidden={activeSection !== "agendamento"}
-        >
-          <SectionTitle id="agendamento-title">Agendamento</SectionTitle>
-          <form className="form-card" onSubmit={handleSubmit}>
-            <div className="form-grid">
-              <div className="booking-steps" aria-label="Etapas do agendamento">
-                <span className={`step-pill ${formData.profissional ? "step-done" : ""}`}>
-                  1. Profissional
-                </span>
-                <span className={`step-pill ${formData.servico ? "step-done" : ""}`}>2. Servico</span>
-                <span className={`step-pill ${formData.data && formData.hora ? "step-done" : ""}`}>
-                  3. Horario
-                </span>
-              </div>
-
-              {selectedProfessional ? (
-                <div className="booking-summary">
-                  <img
-                    className="booking-summary-photo"
-                    src={selectedProfessional.image}
-                    alt={`Profissional ${selectedProfessional.name}`}
-                  />
-                  <div>
-                    <strong>Voce esta agendando com {selectedProfessional.name}</strong>
-                    <p className="meta">{selectedProfessional.highlight}</p>
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="field">
-                <label htmlFor="nome">Nome</label>
-                <input
-                  type="text"
-                  id="nome"
-                  name="nome"
-                  placeholder="Seu nome"
-                  autoComplete="name"
-                  value={formData.nome}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="field">
-                <label htmlFor="servico">Servico</label>
-                <select
-                  id="servico"
-                  name="servico"
-                  value={formData.servico}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Escolha o servico</option>
-                  {services.map((service) => (
-                    <option key={service.name} value={service.name}>
-                      {service.name} - {service.price}
-                    </option>
-                  ))}
-                </select>
-                {selectedService ? (
-                  <p className="service-price" aria-live="polite">
-                    Valor selecionado: <strong>{selectedService.price}</strong>
-                  </p>
-                ) : null}
-                <div className="chip-row inline-chip-row" aria-label="Servicos sugeridos">
-                  {services.slice(0, 4).map((service) => (
-                    <button
-                      key={service.name}
-                      type="button"
-                      className={`chip-button small-chip ${formData.servico === service.name ? "chip-active" : ""}`}
-                      onClick={() => startServiceBooking(service.name)}
-                    >
-                      {service.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="field">
-                <label htmlFor="profissional">Profissional</label>
-                <select
-                  id="profissional"
-                  name="profissional"
-                  value={formData.profissional}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Escolha o profissional</option>
-                  {professionals.map((professional) => (
-                    <option key={professional.name} value={professional.name}>
-                      {professional.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="field">
-                <label htmlFor="data">Data</label>
-                <input
-                  type="date"
-                  id="data"
-                  name="data"
-                  min={today}
-                  value={formData.data}
-                  onChange={handleChange}
-                  aria-describedby="horario-funcionamento"
-                  required
-                />
-              </div>
-
-              <div className="field">
-                <label htmlFor="hora">Horario</label>
-                <input
-                  type="time"
-                  id="hora"
-                  name="hora"
-                  min={selectedDaySchedule?.open}
-                  max={selectedDaySchedule?.close}
-                  step="1800"
-                  value={formData.hora}
-                  onChange={handleChange}
-                  disabled={!selectedDaySchedule}
-                  required
-                />
-                <p id="horario-funcionamento" className="field-note">
-                  {selectedDaySchedule
-                    ? `${selectedDaySchedule.label}: ${selectedDaySchedule.open} as ${selectedDaySchedule.close}`
-                    : "Selecione uma data de segunda a sabado para liberar os horarios de atendimento."}
-                </p>
-              </div>
-
-              <button className="btn" type="submit">
-                Confirmar agendamento
-              </button>
-              <p className="hint">
-                Ao confirmar, abriremos o WhatsApp com a mensagem pronta para envio.
-              </p>
-              <p className="status" aria-live="polite">
-                {status}
-              </p>
-            </div>
-          </form>
-        </section>
-
-        <section
-          id="contato"
-          className={`section ${activeSection === "contato" ? "active" : ""}`}
-          aria-labelledby="contato-title"
-          aria-hidden={activeSection !== "contato"}
-        >
-          <SectionTitle id="contato-title">Contato</SectionTitle>
-          <div className="contact-list">
-            <div className="contact-item">
-              <strong>Endereco</strong>
-              <a
-                className="contact-link"
-                href="https://maps.google.com/?q=Avenida%20Paulino%20Mendes%20Lima%20232%2C%20Centro%2C%20Eun%C3%A1polis%20BA"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Avenida Paulino Mendes Lima, 232, Centro, Eunapolis/BA
-              </a>
-              <img className="location-photo" src={`${assetBase}faixada.png`} alt="Fachada da Foguinho Barber" />
-            </div>
-
-            <div className="contact-item">
-              <strong>Telefone</strong>
-              <a className="contact-link" href="tel:+5524998747229">
-                24 998747229
-              </a>
-            </div>
-
-            <div className="contact-item">
-              <strong>Horarios</strong>
-              <span className="meta">Segunda a quinta: 08h as 19h</span>
-              <br />
-              <span className="meta">Sexta: 08h as 20h</span>
-              <br />
-              <span className="meta">Sabado: 08h as 18h</span>
-            </div>
-          </div>
-        </section>
+        <ContactSection
+          active={activeSection === "contato"}
+          business={business}
+          weeklySchedule={weeklySchedule}
+        />
       </main>
 
       {formData.profissional && activeSection !== "agendamento" ? (
         <div className="booking-shortcut">
           <div>
             <strong>{formData.profissional}</strong>
-            <span>Selecao pronta para continuar</span>
+            <span>
+              {selectedService
+                ? `${selectedService.name} por ${formatCurrency(selectedService.price)}`
+                : "Selecao pronta para continuar"}
+            </span>
           </div>
           <button className="btn booking-shortcut-button" type="button" onClick={() => changeSection("agendamento")}>
             Continuar

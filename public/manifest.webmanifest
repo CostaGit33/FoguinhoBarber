@@ -1,0 +1,21 @@
+{
+  "name": "Foguinho Barber",
+  "short_name": "Foguinho",
+  "description": "Agendamento rapido da Foguinho Barber com horarios disponiveis e confirmacao pelo WhatsApp.",
+  "start_url": "/FoguinhoBarber/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "icons": [
+    {
+      "src": "/FoguinhoBarber/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/FoguinhoBarber/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
