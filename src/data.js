@@ -123,5 +123,20 @@ export const business = {
 
 export const storageKeys = {
   bookings: "foguinho-barber-bookings",
-  lastService: "foguinho-barber-last-service"
+  lastService: "foguinho-barber-last-service",
+  users: "foguinho-barber-users",
+  session: "foguinho-barber-session",
+  favorites: "foguinho-barber-favorites",
+  notifications: "foguinho-barber-notifications",
+  settings: "foguinho-barber-settings"
+};
+
+export const defaultAdmin = {
+  id: "admin-foguinho",
+  name: "Administrador",
+  email: "admin@foguinhobarber.com",
+  phone: business.phone,
+  password: "admin123",
+  role: "admin",
+  createdAt: "2026-04-04T00:00:00.000Z"
 };

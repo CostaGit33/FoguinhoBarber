@@ -4,7 +4,10 @@ export default function Header({
   activeSection,
   isMobileMenuOpen,
   onToggleMenu,
-  onChangeSection
+  onChangeSection,
+  currentUser,
+  onAuthAction,
+  onLogout
 }) {
   return (
     <header className="topbar">
@@ -42,6 +45,20 @@ export default function Header({
             {section.label}
           </button>
         ))}
+        {currentUser ? (
+          <>
+            <button className="nav-button nav-user-badge" type="button" onClick={() => onChangeSection("conta")}>
+              {currentUser.name.split(" ")[0]}
+            </button>
+            <button className="nav-button" type="button" onClick={onLogout}>
+              Sair
+            </button>
+          </>
+        ) : (
+          <button className="nav-button" type="button" onClick={onAuthAction}>
+            Entrar
+          </button>
+        )}
       </nav>
     </header>
   );

@@ -133,6 +133,10 @@ select {
   font-weight: 700;
 }
 
+.nav-user-badge {
+  min-width: 44px;
+}
+
 .section {
   display: none;
   padding: 28px 0 8px;
@@ -191,6 +195,31 @@ select {
 .install-banner-button {
   width: auto;
   min-width: 170px;
+}
+
+.auth-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 18px;
+}
+
+.auth-benefits,
+.auth-card,
+.admin-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.auth-benefit-list {
+  display: grid;
+  gap: 8px;
+  padding-left: 18px;
+  margin: 0;
+  color: var(--muted);
+}
+
+.auth-tabs {
+  margin-bottom: 8px;
 }
 
 .hero {
@@ -688,6 +717,16 @@ h2 {
   white-space: nowrap;
 }
 
+.admin-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.field-checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .contact-item strong {
   display: block;
   margin-bottom: 6px;
@@ -716,6 +755,25 @@ h2 {
 .professional-card {
   overflow: hidden;
   padding: 0;
+  position: relative;
+}
+
+.favorite-toggle {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 1;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.68);
+  color: #ffffff;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.favorite-toggle-active {
+  background: #ffffff;
+  color: #000000;
 }
 
 .professional-booking-button {
@@ -800,6 +858,10 @@ h2 {
   .hero-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .auth-layout {
+    grid-template-columns: 1fr;
   }
 
   .install-banner {

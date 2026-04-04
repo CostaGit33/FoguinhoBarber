@@ -1,6 +1,13 @@
 import SectionTitle from "./SectionTitle";
 
-export default function ProfessionalsSection({ active, business, professionals, onSelectProfessional }) {
+export default function ProfessionalsSection({
+  active,
+  business,
+  professionals,
+  favorites = [],
+  onSelectProfessional,
+  onToggleFavorite
+}) {
   return (
     <section
       id="profissionais"
@@ -14,6 +21,14 @@ export default function ProfessionalsSection({ active, business, professionals, 
       <div className="professionals-grid" aria-label="Equipe da barbearia">
         {professionals.map((professional) => (
           <article key={professional.name} className="card professional-card">
+            <button
+              type="button"
+              className={`favorite-toggle ${favorites.includes(professional.name) ? "favorite-toggle-active" : ""}`}
+              onClick={() => onToggleFavorite?.(professional.name)}
+              aria-pressed={favorites.includes(professional.name)}
+            >
+              {favorites.includes(professional.name) ? "Favorito" : "Favoritar"}
+            </button>
             <button
               type="button"
               className="professional-booking-button"

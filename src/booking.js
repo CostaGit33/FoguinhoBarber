@@ -68,9 +68,11 @@ export function getAvailableSlots({ date, service, professional, bookings }) {
   return slots;
 }
 
-export function createBooking({ formData, selectedProfessional, selectedService }) {
+export function createBooking({ formData, selectedProfessional, selectedService, currentUser }) {
   return {
     id: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}`,
+    userId: currentUser?.id ?? null,
+    userEmail: currentUser?.email ?? null,
     name: formData.nome.trim(),
     service: selectedService.name,
     price: selectedService.price,
@@ -109,6 +111,16 @@ export function saveBookings(bookings) {
   }
 
   window.localStorage.setItem(storageKeys.bookings, JSON.stringify(sortBookings(bookings)));
+}
+
+export function getUpcomingBookings(bookings, currentUser) {
+  if (!currentUser) {
+    return [];
+  }
+
+  return sortBookings(bookings).filter(
+    (booking) => booking.userId === currentUser.id || booking.userEmail === currentUser.email
+  );
 }
 
 export function saveLastService(serviceName) {

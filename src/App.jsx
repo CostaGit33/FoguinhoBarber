@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   business,
   professionals,
-  sections,
+  sections as publicSections,
   services,
   weeklySchedule
 } from "./data";
@@ -12,18 +12,37 @@ import {
   formatDate,
   getAvailableSlots,
   getDaySchedule,
+  getUpcomingBookings,
   loadBookings,
   loadLastService,
   saveBookings,
   saveLastService,
   sortBookings
 } from "./booking";
+import {
+  getCurrentUser,
+  loadFavorites,
+  loadNotifications,
+  loadSettings,
+  loadUsers,
+  loginUser,
+  logoutUser,
+  recoverPassword,
+  registerUser,
+  saveFavorites,
+  saveNotifications,
+  saveSettings,
+  updateUserProfile
+} from "./auth";
 import Header from "./components/Header";
 import HomeSection from "./components/HomeSection";
 import ServicesSection from "./components/ServicesSection";
 import ProfessionalsSection from "./components/ProfessionalsSection";
 import BookingSection from "./components/BookingSection";
 import ContactSection from "./components/ContactSection";
+import AuthSection from "./components/AuthSection";
+import AccountSection from "./components/AccountSection";
+import AdminSection from "./components/AdminSection";
 
 const today = new Date().toISOString().split("T")[0];
 const installPromptDismissKey = "foguinho-barber-install-dismissed";
@@ -32,14 +51,30 @@ export default function App() {
   const [activeSection, setActiveSection] = useState("home");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [bookings, setBookings] = useState(() => loadBookings());
+  const [users, setUsers] = useState(() => loadUsers());
+  const [currentUser, setCurrentUser] = useState(() => getCurrentUser());
+  const [favorites, setFavorites] = useState(() => loadFavorites());
+  const [notifications, setNotifications] = useState(() => loadNotifications());
+  const [settings, setSettings] = useState(() => loadSettings());
   const [formData, setFormData] = useState(() => ({
-    nome: "",
+    nome: getCurrentUser()?.name ?? "",
     servico: loadLastService(),
     profissional: "",
     data: "",
     hora: ""
   }));
   const [status, setStatus] = useState("");
+  const [authView, setAuthView] = useState("login");
+  const [authForm, setAuthForm] = useState({ name: "", email: "", phone: "", password: "" });
+  const [authMessage, setAuthMessage] = useState("");
+  const [accountView, setAccountView] = useState("profile");
+  const [profileForm, setProfileForm] = useState(() => ({
+    name: currentUser?.name ?? "",
+    email: currentUser?.email ?? "",
+    phone: currentUser?.phone ?? ""
+  }));
+  const [accountMessage, setAccountMessage] = useState("");
+  const [adminView, setAdminView] = useState("dashboard");
   const [installPromptEvent, setInstallPromptEvent] = useState(null);
   const [isInstallBannerVisible, setIsInstallBannerVisible] = useState(false);
 
@@ -55,9 +90,43 @@ export default function App() {
     bookings
   });
 
+  const upcomingBookings = useMemo(
+    () => getUpcomingBookings(bookings, currentUser),
+    [bookings, currentUser]
+  );
+
+  const favoriteProfessionals = currentUser ? favorites[currentUser.id] ?? [] : [];
+
+  const navSections = useMemo(() => {
+    const nextSections = [...publicSections];
+
+    if (currentUser) {
+      nextSections.push({ id: "conta", label: "Minha area" });
+      if (currentUser.role === "admin") {
+        nextSections.push({ id: "admin", label: "Admin" });
+      }
+    } else {
+      nextSections.push({ id: "login", label: "Login" });
+    }
+
+    return nextSections;
+  }, [currentUser]);
+
   useEffect(() => {
     saveBookings(bookings);
   }, [bookings]);
+
+  useEffect(() => {
+    saveNotifications(notifications);
+  }, [notifications]);
+
+  useEffect(() => {
+    saveSettings(settings);
+  }, [settings]);
+
+  useEffect(() => {
+    saveFavorites(favorites);
+  }, [favorites]);
 
   useEffect(() => {
     if (formData.servico) {
@@ -66,12 +135,23 @@ export default function App() {
   }, [formData.servico]);
 
   useEffect(() => {
+    if (currentUser) {
+      setFormData((current) => ({ ...current, nome: currentUser.name }));
+      setProfileForm({
+        name: currentUser.name,
+        email: currentUser.email,
+        phone: currentUser.phone
+      });
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
     function handleBeforeInstallPrompt(event) {
       event.preventDefault();
       setInstallPromptEvent(event);
 
       const dismissedAt = window.localStorage.getItem(installPromptDismissKey);
-      if (!dismissedAt) {
+      if (!dismissedAt && settings.installBannerEnabled) {
         setIsInstallBannerVisible(true);
       }
     }
@@ -90,7 +170,19 @@ export default function App() {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
-  }, []);
+  }, [settings.installBannerEnabled]);
+
+  function pushNotification(title, message) {
+    setNotifications((current) => [
+      {
+        id: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}`,
+        title,
+        message,
+        createdAt: new Date().toISOString()
+      },
+      ...current
+    ]);
+  }
 
   function changeSection(sectionId) {
     setActiveSection(sectionId);
@@ -101,11 +193,7 @@ export default function App() {
     const { name, value } = event.target;
 
     setFormData((current) => {
-      if (name === "data") {
-        return { ...current, data: value, hora: "" };
-      }
-
-      if (name === "servico" || name === "profissional") {
+      if (name === "data" || name === "servico" || name === "profissional") {
         return { ...current, [name]: value, hora: "" };
       }
 
@@ -134,8 +222,103 @@ export default function App() {
   }
 
   function cancelBooking(bookingId) {
-    setBookings((current) => current.filter((booking) => booking.id !== bookingId));
+    const booking = bookings.find((item) => item.id === bookingId);
+    setBookings((current) => current.filter((item) => item.id !== bookingId));
+    if (booking) {
+      pushNotification("Agendamento cancelado", `${booking.name} cancelou ${booking.service} com ${booking.professional}.`);
+    }
     setStatus("Agendamento removido do painel local.");
+  }
+
+  function toggleFavorite(professionalName) {
+    if (!currentUser) {
+      setAuthMessage("Entre na sua conta para salvar profissionais favoritos.");
+      changeSection("login");
+      return;
+    }
+
+    setFavorites((current) => {
+      const currentFavorites = current[currentUser.id] ?? [];
+      const exists = currentFavorites.includes(professionalName);
+      const nextFavorites = exists
+        ? currentFavorites.filter((name) => name !== professionalName)
+        : [...currentFavorites, professionalName];
+
+      return { ...current, [currentUser.id]: nextFavorites };
+    });
+  }
+
+  function handleAuthChange(event) {
+    const { name, value } = event.target;
+    setAuthForm((current) => ({ ...current, [name]: value }));
+  }
+
+  function handleAuthSubmit(event) {
+    event.preventDefault();
+
+    if (authView === "login") {
+      const result = loginUser(authForm);
+      if (!result.ok) {
+        setAuthMessage(result.message);
+        return;
+      }
+
+      setCurrentUser(result.user);
+      setUsers(loadUsers());
+      setAuthMessage("Login realizado com sucesso.");
+      changeSection(result.user.role === "admin" ? "admin" : "conta");
+      return;
+    }
+
+    if (authView === "register") {
+      const result = registerUser(authForm);
+      if (!result.ok) {
+        setAuthMessage(result.message);
+        return;
+      }
+
+      setCurrentUser(result.user);
+      setUsers(loadUsers());
+      pushNotification("Novo cliente cadastrado", `${result.user.name} criou uma conta no app.`);
+      setAuthMessage("Conta criada com sucesso.");
+      changeSection("conta");
+      return;
+    }
+
+    const result = recoverPassword(authForm.email);
+    setAuthMessage(result.message);
+  }
+
+  function handleLogout() {
+    logoutUser();
+    setCurrentUser(null);
+    setAccountMessage("");
+    changeSection("home");
+  }
+
+  function handleProfileChange(event) {
+    const { name, value } = event.target;
+    setProfileForm((current) => ({ ...current, [name]: value }));
+  }
+
+  function handleProfileSubmit(event) {
+    event.preventDefault();
+    if (!currentUser) {
+      return;
+    }
+
+    const updatedUser = updateUserProfile(currentUser.id, profileForm);
+    setCurrentUser(updatedUser);
+    setUsers(loadUsers());
+    setAccountMessage("Perfil atualizado com sucesso.");
+  }
+
+  function handleSettingsChange(event) {
+    const { name, type, checked, value } = event.target;
+    setSettings((current) => ({
+      ...current,
+      [name]: type === "checkbox" ? checked : Number(value)
+    }));
   }
 
   function dismissInstallBanner() {
@@ -175,15 +358,24 @@ export default function App() {
       return;
     }
 
+    if (!settings.publicBookingEnabled && currentUser?.role !== "admin") {
+      setStatus("Agendamentos publicos estao temporariamente desativados.");
+      return;
+    }
+
     const slot = availableSlots.find((item) => item.time === hora);
     if (!slot?.available) {
       setStatus("Esse horario ja foi ocupado ou nao esta disponivel para o servico escolhido.");
       return;
     }
 
-    const booking = createBooking({ formData, selectedProfessional, selectedService });
+    const booking = createBooking({ formData, selectedProfessional, selectedService, currentUser });
     const nextBookings = sortBookings([...bookings, booking]);
     setBookings(nextBookings);
+    pushNotification(
+      "Novo agendamento",
+      `${booking.name} marcou ${booking.service} com ${booking.professional} para ${formatDate(booking.date)}.`
+    );
 
     const mensagem = [
       `Ola, meu nome e ${booking.name}.`,
@@ -206,11 +398,14 @@ export default function App() {
     <>
       <Header
         business={business}
-        sections={sections}
+        sections={navSections}
         activeSection={activeSection}
         isMobileMenuOpen={isMobileMenuOpen}
         onToggleMenu={() => setIsMobileMenuOpen((current) => !current)}
         onChangeSection={changeSection}
+        currentUser={currentUser}
+        onAuthAction={() => changeSection("login")}
+        onLogout={handleLogout}
       />
 
       <main className="page">
@@ -220,8 +415,7 @@ export default function App() {
               <p className="install-banner-kicker">Atalho no celular</p>
               <strong>Instale a Foguinho Barber como app</strong>
               <p className="meta">
-                Abra mais rapido, use em tela cheia e tenha uma experiencia mais parecida com app
-                nativo.
+                Abra mais rapido, use em tela cheia e tenha uma experiencia mais parecida com app nativo.
               </p>
             </div>
             <div className="install-banner-actions">
@@ -256,7 +450,9 @@ export default function App() {
           active={activeSection === "profissionais"}
           business={business}
           professionals={professionals}
+          favorites={favoriteProfessionals}
           onSelectProfessional={startBooking}
+          onToggleFavorite={toggleFavorite}
         />
 
         <BookingSection
@@ -285,6 +481,53 @@ export default function App() {
           business={business}
           weeklySchedule={weeklySchedule}
         />
+
+        <AuthSection
+          active={activeSection === "login"}
+          business={business}
+          authView={authView}
+          authForm={authForm}
+          authMessage={authMessage}
+          onTabChange={setAuthView}
+          onChange={handleAuthChange}
+          onSubmit={handleAuthSubmit}
+        />
+
+        {currentUser ? (
+          <AccountSection
+            active={activeSection === "conta"}
+            business={business}
+            currentUser={currentUser}
+            accountView={accountView}
+            profileForm={profileForm}
+            accountMessage={accountMessage}
+            upcomingBookings={upcomingBookings}
+            allBookings={bookings}
+            favoriteProfessionals={favoriteProfessionals}
+            professionals={professionals}
+            onTabChange={setAccountView}
+            onProfileChange={handleProfileChange}
+            onProfileSubmit={handleProfileSubmit}
+            onCancelBooking={cancelBooking}
+            onSelectProfessional={startBooking}
+          />
+        ) : null}
+
+        {currentUser?.role === "admin" ? (
+          <AdminSection
+            active={activeSection === "admin"}
+            business={business}
+            adminView={adminView}
+            bookings={bookings}
+            users={users}
+            professionals={professionals}
+            services={services}
+            notifications={notifications}
+            settings={settings}
+            onTabChange={setAdminView}
+            onSettingsChange={handleSettingsChange}
+          />
+        ) : null}
       </main>
 
       {formData.profissional && activeSection !== "agendamento" ? (
