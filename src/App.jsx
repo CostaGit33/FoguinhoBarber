@@ -11,17 +11,27 @@ const sections = [
 ];
 
 const services = [
-  { name: "Corte", meta: "R$45 - duracao media de 30 minutos" },
-  { name: "Barba", meta: "R$40 - duracao media de 30 minutos" },
-  { name: "Cabelo + Barba", meta: "R$80 - duracao media de 60 minutos" },
-  { name: "Combo Completo", meta: "R$90 - atendimento completo" },
-  { name: "Corte Feminino", meta: "R$60 - finalizacao com atencao aos detalhes" },
-  { name: "Corte Infantil", meta: "R$45 - cuidado e conforto para os pequenos" }
+  { name: "Corte", price: "R$45", meta: "R$45 - duracao media de 30 minutos" },
+  { name: "Barba", price: "R$40", meta: "R$40 - duracao media de 30 minutos" },
+  { name: "Cabelo + Barba", price: "R$80", meta: "R$80 - duracao media de 60 minutos" },
+  { name: "Combo Completo", price: "R$90", meta: "R$90 - atendimento completo" },
+  { name: "Corte Feminino", price: "R$60", meta: "R$60 - finalizacao com atencao aos detalhes" },
+  { name: "Corte Infantil", price: "R$45", meta: "R$45 - cuidado e conforto para os pequenos" }
 ];
+
+const weeklySchedule = {
+  0: null,
+  1: { label: "Segunda-Feira", open: "08:00", close: "19:00" },
+  2: { label: "Terca-Feira", open: "08:00", close: "19:00" },
+  3: { label: "Quarta-Feira", open: "08:00", close: "19:00" },
+  4: { label: "Quinta-Feira", open: "08:00", close: "19:00" },
+  5: { label: "Sexta-Feira", open: "08:00", close: "20:00" },
+  6: { label: "Sabado", open: "08:00", close: "18:00" }
+};
 
 const professionals = [
   {
-    name: "Foguinho",
+    name: "Foguinho 🔥",
     role: "Barbeiro",
     image: `${assetBase}foguinho.jpeg`,
     highlight: "Presenca forte, estilo marcante e assinatura da casa.",
@@ -95,7 +105,13 @@ export default function App() {
 
   function handleChange(event) {
     const { name, value } = event.target;
-    setFormData((current) => ({ ...current, [name]: value }));
+    setFormData((current) => {
+      if (name === "data") {
+        return { ...current, data: value, hora: "" };
+      }
+
+      return { ...current, [name]: value };
+    });
   }
 
   function startBooking(professionalName) {
@@ -120,6 +136,9 @@ export default function App() {
   const selectedProfessional = professionals.find(
     (professional) => professional.name === formData.profissional
   );
+  const selectedService = services.find((service) => service.name === formData.servico);
+  const selectedDate = formData.data ? new Date(`${formData.data}T12:00:00`) : null;
+  const selectedDaySchedule = selectedDate ? weeklySchedule[selectedDate.getDay()] : null;
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -127,6 +146,18 @@ export default function App() {
     const { nome, servico, profissional, data, hora } = formData;
     if (!nome.trim() || !servico || !profissional || !data || !hora) {
       setStatus("Preencha todos os campos antes de continuar.");
+      return;
+    }
+
+    if (!selectedDaySchedule) {
+      setStatus("A barbearia nao atende aos domingos. Escolha outro dia para agendar.");
+      return;
+    }
+
+    if (hora < selectedDaySchedule.open || hora > selectedDaySchedule.close) {
+      setStatus(
+        `O horario escolhido esta fora do atendimento de ${selectedDaySchedule.label}: ${selectedDaySchedule.open} as ${selectedDaySchedule.close}.`
+      );
       return;
     }
 
@@ -142,6 +173,7 @@ export default function App() {
       "Quero agendar:",
       "",
       `Servico: ${servico}`,
+      `Valor: ${selectedService?.price ?? "A confirmar"}`,
       `Profissional: ${profissional}`,
       `Data: ${dataFormatada}`,
       `Horario: ${hora}`
@@ -388,10 +420,15 @@ export default function App() {
                   <option value="">Escolha o servico</option>
                   {services.map((service) => (
                     <option key={service.name} value={service.name}>
-                      {service.name}
+                      {service.name} - {service.price}
                     </option>
                   ))}
                 </select>
+                {selectedService ? (
+                  <p className="service-price" aria-live="polite">
+                    Valor selecionado: <strong>{selectedService.price}</strong>
+                  </p>
+                ) : null}
                 <div className="chip-row inline-chip-row" aria-label="Servicos sugeridos">
                   {services.slice(0, 4).map((service) => (
                     <button
@@ -433,6 +470,7 @@ export default function App() {
                   min={today}
                   value={formData.data}
                   onChange={handleChange}
+                  aria-describedby="horario-funcionamento"
                   required
                 />
               </div>
@@ -443,10 +481,19 @@ export default function App() {
                   type="time"
                   id="hora"
                   name="hora"
+                  min={selectedDaySchedule?.open}
+                  max={selectedDaySchedule?.close}
+                  step="1800"
                   value={formData.hora}
                   onChange={handleChange}
+                  disabled={!selectedDaySchedule}
                   required
                 />
+                <p id="horario-funcionamento" className="field-note">
+                  {selectedDaySchedule
+                    ? `${selectedDaySchedule.label}: ${selectedDaySchedule.open} as ${selectedDaySchedule.close}`
+                    : "Selecione uma data de segunda a sabado para liberar os horarios de atendimento."}
+                </p>
               </div>
 
               <button className="btn" type="submit">
