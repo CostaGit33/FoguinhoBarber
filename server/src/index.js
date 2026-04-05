@@ -3,12 +3,22 @@ import express from "express";
 import helmet from "helmet";
 import { comparePassword, hashPassword, signToken } from "./auth.js";
 import { config } from "./config.js";
-import { query } from "./db.js";
+import { pool, query } from "./db.js";
 import { requireAdmin, requireAuth } from "./middleware.js";
 import { ensureAdminUser, ensureSchema } from "./seed.js";
 
 const app = express();
+const activeServer = { instance: null };
 
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function isPositiveInteger(value) {
+  return Number.isInteger(value) && value > 0;
+}
+
+app.set("trust proxy", 1);
 app.use(helmet());
 app.use(
   cors({
@@ -25,7 +35,7 @@ app.use(
     credentials: true
   })
 );
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 
 app.get("/", (_req, res) => {
   res.json({
@@ -62,7 +72,7 @@ app.get("/availability", async (req, res) => {
 
 app.post("/auth/register", async (req, res) => {
   const { name, email, phone, password } = req.body ?? {};
-  if (!name || !email || !phone || !password) {
+  if (![name, email, phone, password].every(isNonEmptyString)) {
     return res.status(400).json({ message: "Preencha nome, e-mail, telefone e senha." });
   }
 
@@ -88,7 +98,7 @@ app.post("/auth/register", async (req, res) => {
 
 app.post("/auth/login", async (req, res) => {
   const { email, password } = req.body ?? {};
-  if (!email || !password) {
+  if (![email, password].every(isNonEmptyString)) {
     return res.status(400).json({ message: "Informe e-mail e senha." });
   }
 
@@ -118,6 +128,18 @@ app.get("/auth/me", requireAuth, async (req, res) => {
 app.put("/users/me", requireAuth, async (req, res) => {
   const { name, email, phone } = req.body ?? {};
   const normalizedEmail = email?.trim().toLowerCase();
+
+  if (name !== undefined && !isNonEmptyString(name)) {
+    return res.status(400).json({ message: "Informe um nome valido." });
+  }
+
+  if (email !== undefined && !isNonEmptyString(email)) {
+    return res.status(400).json({ message: "Informe um e-mail valido." });
+  }
+
+  if (phone !== undefined && !isNonEmptyString(phone)) {
+    return res.status(400).json({ message: "Informe um telefone valido." });
+  }
 
   if (normalizedEmail && normalizedEmail !== req.user.email) {
     const existing = await query("select id from users where email = $1 and id <> $2 limit 1", [
@@ -177,8 +199,15 @@ app.post("/bookings", requireAuth, async (req, res) => {
     bookingTime
   } = req.body ?? {};
 
-  if (!customerName || !serviceName || !professionalName || !bookingDate || !bookingTime) {
+  const normalizedServicePrice = Number(servicePrice);
+  const normalizedServiceDuration = Number(serviceDuration);
+
+  if (![customerName, serviceName, professionalName, bookingDate, bookingTime].every(isNonEmptyString)) {
     return res.status(400).json({ message: "Dados do agendamento incompletos." });
+  }
+
+  if (!isPositiveInteger(normalizedServicePrice) || !isPositiveInteger(normalizedServiceDuration)) {
+    return res.status(400).json({ message: "Servico invalido para agendamento." });
   }
 
   const conflict = await query(
@@ -192,7 +221,7 @@ app.post("/bookings", requireAuth, async (req, res) => {
         and ($3::time + make_interval(mins => $4::int)) > booking_time
       limit 1
     `,
-    [professionalName, bookingDate, bookingTime, serviceDuration]
+    [professionalName, bookingDate, bookingTime, normalizedServiceDuration]
   );
 
   if (conflict.rows[0]) {
@@ -216,8 +245,8 @@ app.post("/bookings", requireAuth, async (req, res) => {
       req.user.email,
       customerPhone ?? req.user.phone,
       serviceName,
-      servicePrice,
-      serviceDuration,
+      normalizedServicePrice,
+      normalizedServiceDuration,
       professionalName,
       bookingDate,
       bookingTime
@@ -262,14 +291,34 @@ app.get("/admin/users", requireAuth, requireAdmin, async (_req, res) => {
   res.json({ users: rows });
 });
 
+app.use((_req, res) => {
+  res.status(404).json({ message: "Rota nao encontrada." });
+});
+
 app.use((error, _req, res, _next) => {
   console.error(error);
   res.status(500).json({ message: "Erro interno no servidor." });
 });
 
+async function shutdown(signal) {
+  console.log(`Encerrando API com sinal ${signal}...`);
+  await new Promise((resolve) => activeServer.instance?.close(resolve));
+  await pool.end().catch(() => {});
+  process.exit(0);
+}
+
 await ensureSchema();
 await ensureAdminUser();
 
-app.listen(config.port, () => {
+activeServer.instance = app.listen(config.port, () => {
   console.log(`API online na porta ${config.port}`);
+  console.log(`Origens liberadas: ${config.allowedOrigins.join(", ")}`);
+});
+
+process.on("SIGTERM", () => {
+  shutdown("SIGTERM");
+});
+
+process.on("SIGINT", () => {
+  shutdown("SIGINT");
 });

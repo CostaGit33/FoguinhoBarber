@@ -19,8 +19,11 @@ function parseAllowedOrigins() {
   const configured = [
     process.env.CLIENT_URL,
     process.env.CLIENT_URLS,
+    process.env.FRONTEND_PREVIEW_URL,
+    process.env.FRONTEND_PREVIEW_URLS,
     "https://barbeariadofoguinho.online",
     "https://www.barbeariadofoguinho.online",
+    "https://scraper-foguinho-frontend.dybxu9.easypanel.host",
     "http://localhost:5173",
     "http://127.0.0.1:5173"
   ]
