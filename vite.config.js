@@ -7,6 +7,10 @@ export default defineConfig({
   preview: {
     host: "0.0.0.0",
     port: 80,
-    allowedHosts: ["barbeariadofoguinho.online", "www.barbeariadofoguinho.online"]
+    allowedHosts: [
+      "barbeariadofoguinho.online",
+      "www.barbeariadofoguinho.online",
+      "scraper-foguinho-frontend.dybxu9.easypanel.host"
+    ]
   }
 });
