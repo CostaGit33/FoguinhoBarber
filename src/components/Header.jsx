@@ -1,12 +1,12 @@
+import { NavLink } from "react-router-dom";
+
 export default function Header({
   business,
   sections,
-  activeSection,
   isMobileMenuOpen,
   onToggleMenu,
-  onChangeSection,
   currentUser,
-  onAuthAction,
+  onCloseMenu,
   onLogout
 }) {
   return (
@@ -35,29 +35,28 @@ export default function Header({
         aria-label="Navegacao principal"
       >
         {sections.map((section) => (
-          <button
-            key={section.id}
+          <NavLink
+            key={section.to}
+            to={section.to}
             className="nav-button"
-            type="button"
-            onClick={() => onChangeSection(section.id)}
-            aria-current={activeSection === section.id ? "page" : undefined}
+            onClick={section.onClick ?? onCloseMenu}
           >
             {section.label}
-          </button>
+          </NavLink>
         ))}
         {currentUser ? (
           <>
-            <button className="nav-button nav-user-badge" type="button" onClick={() => onChangeSection("conta")}>
+            <NavLink className="nav-button nav-user-badge" to="/conta" onClick={onCloseMenu}>
               {currentUser.name.split(" ")[0]}
-            </button>
+            </NavLink>
             <button className="nav-button" type="button" onClick={onLogout}>
               Sair
             </button>
           </>
         ) : (
-          <button className="nav-button" type="button" onClick={onAuthAction}>
+          <NavLink className="nav-button" to="/login" onClick={onCloseMenu}>
             Entrar
-          </button>
+          </NavLink>
         )}
       </nav>
     </header>

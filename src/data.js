@@ -122,6 +122,7 @@ export const business = {
 };
 
 export const storageKeys = {
+  apiSession: "foguinho-barber-api-session",
   bookings: "foguinho-barber-bookings",
   lastService: "foguinho-barber-last-service",
   users: "foguinho-barber-users",

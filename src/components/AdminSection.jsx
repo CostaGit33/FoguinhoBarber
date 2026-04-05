@@ -61,7 +61,7 @@ export default function AdminSection({
           <div className="dashboard-card">
             <p className="dashboard-kicker">Clientes</p>
             <h3>{clientUsers.length} contas cadastradas</h3>
-            <p className="meta">Base local de usuarios pronta para futura integracao com backend.</p>
+            <p className="meta">Clientes reais sincronizados com a API e o PostgreSQL.</p>
           </div>
           <div className="dashboard-card">
             <p className="dashboard-kicker">Equipe</p>
@@ -210,8 +210,8 @@ export default function AdminSection({
               </label>
             </div>
             <p className="meta">
-              Essas configuracoes ficam salvas localmente e deixam a estrutura pronta para uma
-              futura area administrativa conectada ao banco.
+              Essas configuracoes ainda ficam locais no navegador, enquanto a agenda e as contas
+              ja usam a estrutura real do projeto.
             </p>
           </div>
         </form>

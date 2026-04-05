@@ -23,6 +23,27 @@ app.get("/health", async (_req, res) => {
   res.json({ ok: true });
 });
 
+app.get("/availability", async (req, res) => {
+  const { date, professional } = req.query ?? {};
+  if (!date || !professional) {
+    return res.status(400).json({ message: "Informe data e profissional." });
+  }
+
+  const { rows } = await query(
+    `
+      select id, professional_name, booking_date, booking_time, service_duration, status
+      from bookings
+      where professional_name = $1
+        and booking_date = $2
+        and status = 'scheduled'
+      order by booking_time asc
+    `,
+    [professional, date]
+  );
+
+  res.json({ bookings: rows });
+});
+
 app.post("/auth/register", async (req, res) => {
   const { name, email, phone, password } = req.body ?? {};
   if (!name || !email || !phone || !password) {
@@ -139,11 +160,12 @@ app.post("/bookings", requireAuth, async (req, res) => {
       from bookings
       where professional_name = $1
         and booking_date = $2
-        and booking_time = $3
         and status = 'scheduled'
+        and $3::time < (booking_time + make_interval(mins => service_duration))
+        and ($3::time + make_interval(mins => $4::int)) > booking_time
       limit 1
     `,
-    [professionalName, bookingDate, bookingTime]
+    [professionalName, bookingDate, bookingTime, serviceDuration]
   );
 
   if (conflict.rows[0]) {

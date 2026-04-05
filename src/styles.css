@@ -109,12 +109,16 @@ select {
 }
 
 .nav-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: transparent;
   color: var(--text);
   padding: 10px 16px;
   cursor: pointer;
+  text-decoration: none;
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease,
     transform 0.2s ease;
 }
@@ -144,6 +148,12 @@ select {
 
 .section.active {
   display: block;
+}
+
+.route-status-card {
+  display: grid;
+  gap: 8px;
+  padding: 28px;
 }
 
 .hero,

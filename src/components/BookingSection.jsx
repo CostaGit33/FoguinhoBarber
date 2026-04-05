@@ -195,8 +195,8 @@ export default function BookingSection({
             Confirmar agendamento
           </button>
           <p className="hint">
-            Ao confirmar, o agendamento fica salvo neste aparelho e abrimos o WhatsApp com a
-            mensagem pronta para envio.
+            Ao confirmar, o agendamento entra na agenda real da barbearia e tambem abrimos o
+            WhatsApp com a mensagem pronta para envio.
           </p>
           <p className="status" aria-live="polite">
             {status}

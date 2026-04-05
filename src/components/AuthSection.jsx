@@ -30,14 +30,14 @@ export default function AuthSection({
       <div className="auth-layout">
         <div className="card auth-benefits">
           <p className="dashboard-kicker">Conta do cliente</p>
-          <strong>Entre para salvar seu historico e acompanhar agendamentos</strong>
+          <strong>Entre para acompanhar sua agenda em qualquer aparelho</strong>
           <ul className="auth-benefit-list">
-            <li>Perfil com nome, telefone e preferidos</li>
-            <li>Historico dos agendamentos feitos neste navegador</li>
-            <li>Painel administrativo para a conta gestora</li>
+            <li>Perfil salvo na sua conta com nome, telefone e favoritos</li>
+            <li>Agendamentos sincronizados com a agenda real da barbearia</li>
+            <li>Painel administrativo conectado ao banco de dados</li>
           </ul>
           <p className="meta">
-            Conta admin de demonstração: <strong>admin@foguinhobarber.com</strong> com senha{" "}
+            Conta admin de demonstracao: <strong>admin@foguinhobarber.com</strong> com senha{" "}
             <strong>admin123</strong>.
           </p>
         </div>
@@ -66,7 +66,7 @@ export default function AuthSection({
                 placeholder="Seu nome"
                 value={authForm.name}
                 onChange={onChange}
-                required={authView === "register"}
+                required
               />
             </div>
           ) : null}
@@ -84,7 +84,7 @@ export default function AuthSection({
             />
           </div>
 
-          {(authView === "login" || authView === "register") ? (
+          {authView !== "recover" ? (
             <div className="field">
               <label htmlFor="auth-password">Senha</label>
               <input
@@ -94,7 +94,7 @@ export default function AuthSection({
                 placeholder="Sua senha"
                 value={authForm.password}
                 onChange={onChange}
-                required={authView !== "recover"}
+                required
               />
             </div>
           ) : null}
@@ -119,7 +119,7 @@ export default function AuthSection({
               ? "Entrar"
               : authView === "register"
                 ? "Criar conta"
-                : "Recuperar acesso"}
+                : "Receber instrucoes"}
           </button>
 
           <p className="status" aria-live="polite">

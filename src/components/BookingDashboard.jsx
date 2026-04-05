@@ -6,14 +6,14 @@ export default function BookingDashboard({ bookings, onCancel }) {
       <div className="dashboard-header">
         <div>
           <p className="dashboard-kicker">Painel rapido</p>
-          <h3 id="painel-title">Proximos agendamentos salvos neste dispositivo</h3>
+          <h3 id="painel-title">Proximos agendamentos da sua conta</h3>
         </div>
         <span className="dashboard-count">{bookings.length}</span>
       </div>
 
       {bookings.length === 0 ? (
         <p className="meta">
-          Quando um agendamento for confirmado, ele aparecera aqui para facilitar revisao e
+          Quando um agendamento for confirmado, ele aparecera aqui para facilitar consulta e
           cancelamento rapido.
         </p>
       ) : (

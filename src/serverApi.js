@@ -37,6 +37,8 @@ export async function apiRequest(path, { method = "GET", token, body } = {}) {
 
 export const serverApi = {
   health: () => apiRequest("/health"),
+  availability: ({ date, professional }) =>
+    apiRequest(`/availability?date=${encodeURIComponent(date)}&professional=${encodeURIComponent(professional)}`),
   login: (body) => apiRequest("/auth/login", { method: "POST", body }),
   register: (body) => apiRequest("/auth/register", { method: "POST", body }),
   me: (token) => apiRequest("/auth/me", { token }),
