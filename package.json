@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "preview:easypanel": "vite preview --host 0.0.0.0 --port 80",
     "server:dev": "npm --prefix server run dev",
     "server:start": "npm --prefix server start"
   },
