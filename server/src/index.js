@@ -49,6 +49,23 @@ app.get("/health", async (_req, res) => {
   res.json({ ok: true });
 });
 
+app.get("/users-test", async (_req, res) => {
+  const { rows } = await query(
+    `
+      select id, name, email, phone, role, created_at
+      from users
+      order by created_at desc
+      limit 20
+    `
+  );
+
+  res.json({
+    ok: true,
+    total: rows.length,
+    users: rows
+  });
+});
+
 app.get("/availability", async (req, res) => {
   const { date, professional } = req.query ?? {};
   if (!date || !professional) {
