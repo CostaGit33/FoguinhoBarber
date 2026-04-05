@@ -1,5 +1,6 @@
-const CACHE_NAME = "foguinho-barber-v1";
-const APP_SHELL = ["/FoguinhoBarber/", "/FoguinhoBarber/manifest.webmanifest", "/FoguinhoBarber/logo.png"];
+const CACHE_NAME = "foguinho-barber-v2";
+const basePath = self.location.pathname.replace(/service-worker\.js$/, "");
+const APP_SHELL = [basePath, `${basePath}manifest.webmanifest`, `${basePath}logo.png`];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));

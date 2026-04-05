@@ -2,40 +2,60 @@
 
 ## Estrutura recomendada
 
-- `frontend`: este projeto React/Vite
-- `api`: a pasta `server/`
+- `frontend`: raiz deste projeto React/Vite
+- `api`: pasta `server/`
 - `database`: PostgreSQL gerenciado pelo EasyPanel
+
+## Dominios usados
+
+- `frontend`: `https://barbeariadofoguinho.online`
+- `api`: `https://api.barbeariadofoguinho.online`
 
 ## 1. Banco PostgreSQL
 
-Crie um serviço PostgreSQL no EasyPanel e copie a `DATABASE_URL`.
+Crie um servico PostgreSQL no projeto `scraper` e copie a `DATABASE_URL` interna.
+
+Exemplo:
+
+```text
+postgresql://postgres:SENHA@scraper_foguinho-postgres:5432/scraper
+```
 
 ## 2. API Node
 
-Use a pasta `server/` como aplicação Node.
+Use a pasta `server/` como aplicacao Node.
 
-### Build/Install
+### GitHub
 
-```bash
-npm install
-```
+- owner: `Costagit33`
+- repo: `FoguinhoBarber`
+- branch: `main`
+- build path: `/server`
 
-### Start command
+### Nixpacks
 
-```bash
-npm start
-```
+- install command: `npm install`
+- build command: deixar vazio
+- start command: `npm start`
+- port: `4000`
 
-### Variáveis de ambiente da API
+### Variaveis de ambiente da API
 
 - `PORT=4000`
-- `CLIENT_URL=https://seu-frontend.com`
-- `DATABASE_URL=postgresql://...`
+- `CLIENT_URL=https://barbeariadofoguinho.online`
+- `DATABASE_URL=postgresql://postgres:SENHA@scraper_foguinho-postgres:5432/scraper`
 - `JWT_SECRET=troque-por-uma-chave-forte`
 - `ADMIN_NAME=Administrador`
 - `ADMIN_EMAIL=admin@foguinhobarber.com`
 - `ADMIN_PASSWORD=admin123`
 - `ADMIN_PHONE=(24) 99874-7229`
+
+### Dominio da API
+
+- host: `api.barbeariadofoguinho.online`
+- protocol: `HTTP`
+- port: `4000`
+- path: `/`
 
 ### Healthcheck
 
@@ -47,36 +67,48 @@ Use:
 
 ## 3. Frontend React
 
-Use a raiz do projeto como aplicação estática/Vite.
+Use a raiz do projeto como aplicacao Vite.
 
-### Build command
+### GitHub
 
-```bash
-npm install && npm run build
-```
+- owner: `Costagit33`
+- repo: `FoguinhoBarber`
+- branch: `main`
+- build path: `/`
 
-### Publish directory
+### Nixpacks
 
-```text
-dist
-```
+- install command: `npm install`
+- build command: `npm run build`
+- output directory: `dist`
 
-### Variável do frontend
+### Variaveis do frontend
 
-- `VITE_API_URL=https://api.seu-frontend.com`
+- `VITE_API_URL=https://api.barbeariadofoguinho.online`
+- `VITE_APP_BASE=/`
 
-## 4. Banco e admin
+### Dominio do frontend
 
-A API cria as tabelas automaticamente ao iniciar e também garante a conta admin configurada por variáveis de ambiente.
+- host: `barbeariadofoguinho.online`
+- protocol: `HTTP`
+- port: `80`
+- path: `/`
 
-Se quiser rodar manualmente:
+## 4. Cloudflare DNS
 
-```bash
-cd server
-npm install
-npm run db:seed-admin
-```
+Registros recomendados:
 
-## 5. Próximo passo
+- `A` `@` -> `2.57.91.91` `Proxiado`
+- `A` `api` -> `2.57.91.91` `Proxiado`
+- `CNAME` `www` -> `barbeariadofoguinho.online` `Proxiado`
 
-Hoje o frontend ainda usa armazenamento local como base principal. A estrutura profissional já está pronta no repositório para a migração completa para API + Postgres no próximo passo.
+## 5. Observacoes importantes
+
+- o frontend agora esta preparado para dominio proprio em raiz, sem depender de `/FoguinhoBarber/`
+- o PWA usa caminhos relativos, funcionando melhor no EasyPanel
+- o banco deve continuar interno, sem dominio publico
+- a API ja esta online e pronta para ser conectada ao frontend
+
+## 6. Proximo passo recomendado
+
+Hoje o frontend ainda usa a logica local como principal. A proxima etapa ideal e migrar login, perfil e agendamentos para consumir a API real com PostgreSQL.
