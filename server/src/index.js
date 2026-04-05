@@ -12,7 +12,16 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    origin: [config.clientUrl].filter(Boolean),
+    origin(origin, callback) {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      const normalizedOrigin = origin.replace(/\/$/, "");
+      const isAllowed = config.allowedOrigins.includes(normalizedOrigin);
+      callback(isAllowed ? null : new Error("Origem nao permitida pelo CORS."), isAllowed);
+    },
     credentials: true
   })
 );
