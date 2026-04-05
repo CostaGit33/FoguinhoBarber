@@ -137,6 +137,10 @@ function ProtectedRoute({ currentUser, adminOnly = false, children }) {
   return children;
 }
 
+function isApiOfflineError(error) {
+  return error?.isNetworkError || (typeof error?.status === "number" && error.status >= 500);
+}
+
 function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -357,7 +361,7 @@ function AppShell() {
           return;
         }
 
-        setApiStatus("offline");
+        setApiStatus(isApiOfflineError(error) ? "offline" : "online");
         clearApiSession();
         setToken("");
         setCurrentUser(null);

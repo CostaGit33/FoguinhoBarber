@@ -20,12 +20,19 @@ app.use(
 
       const normalizedOrigin = origin.replace(/\/$/, "");
       const isAllowed = config.allowedOrigins.includes(normalizedOrigin);
-      callback(isAllowed ? null : new Error("Origem nao permitida pelo CORS."), isAllowed);
+      callback(null, isAllowed);
     },
     credentials: true
   })
 );
 app.use(express.json());
+
+app.get("/", (_req, res) => {
+  res.json({
+    ok: true,
+    name: "Barbearia do Foguinho API"
+  });
+});
 
 app.get("/health", async (_req, res) => {
   await query("select 1");
@@ -111,6 +118,17 @@ app.get("/auth/me", requireAuth, async (req, res) => {
 app.put("/users/me", requireAuth, async (req, res) => {
   const { name, email, phone } = req.body ?? {};
   const normalizedEmail = email?.trim().toLowerCase();
+
+  if (normalizedEmail && normalizedEmail !== req.user.email) {
+    const existing = await query("select id from users where email = $1 and id <> $2 limit 1", [
+      normalizedEmail,
+      req.user.id
+    ]);
+
+    if (existing.rows[0]) {
+      return res.status(409).json({ message: "Ja existe uma conta com esse e-mail." });
+    }
+  }
 
   const { rows } = await query(
     `

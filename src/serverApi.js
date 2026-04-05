@@ -1,9 +1,7 @@
 const apiBaseUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, "") ?? "";
 
 function buildHeaders(token) {
-  const headers = {
-    "Content-Type": "application/json"
-  };
+  const headers = {};
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -21,15 +19,27 @@ export async function apiRequest(path, { method = "GET", token, body } = {}) {
     throw new Error("VITE_API_URL nao configurada.");
   }
 
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    method,
-    headers: buildHeaders(token),
-    body: body ? JSON.stringify(body) : undefined
-  });
+  let response;
+  try {
+    response = await fetch(`${apiBaseUrl}${path}`, {
+      method,
+      headers: {
+        ...buildHeaders(token),
+        ...(body ? { "Content-Type": "application/json" } : {})
+      },
+      body: body ? JSON.stringify(body) : undefined
+    });
+  } catch {
+    const error = new Error("Nao foi possivel conectar com a API.");
+    error.isNetworkError = true;
+    throw error;
+  }
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.message ?? "Erro na API.");
+    const error = new Error(data.message ?? "Erro na API.");
+    error.status = response.status;
+    throw error;
   }
 
   return data;
