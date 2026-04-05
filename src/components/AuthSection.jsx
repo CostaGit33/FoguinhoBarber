@@ -16,6 +16,8 @@ export default function AuthSection({
   onChange,
   onSubmit
 }) {
+  const isRecover = authView === "recover";
+
   return (
     <section
       id="login"
@@ -24,21 +26,21 @@ export default function AuthSection({
       aria-hidden={!active}
     >
       <SectionTitle business={business} id="login-title">
-        Acesso
+        Sua conta
       </SectionTitle>
 
       <div className="auth-layout">
         <div className="card auth-benefits">
-          <p className="dashboard-kicker">Conta do cliente</p>
-          <strong>Entre para acompanhar sua agenda em qualquer aparelho</strong>
+          <p className="dashboard-kicker">Acesso rapido</p>
+          <strong>Entre para acompanhar seus agendamentos sem sobrecarregar a tela inicial.</strong>
           <ul className="auth-benefit-list">
-            <li>Perfil salvo na sua conta com nome, telefone e favoritos</li>
-            <li>Agendamentos sincronizados com a agenda real da barbearia</li>
-            <li>Painel administrativo conectado ao banco de dados</li>
+            <li>Veja seus proximos horarios em uma area separada</li>
+            <li>Remarque ou cancele com mais clareza</li>
+            <li>Guarde seus barbeiros favoritos para reservar mais rapido</li>
           </ul>
           <p className="meta">
-            Conta admin de demonstracao: <strong>admin@foguinhobarber.com</strong> com senha{" "}
-            <strong>admin123</strong>.
+            Inspirado nos fluxos mais diretos de apps de agendamento: menos distração na home e mais foco
+            em entrar, marcar e acompanhar.
           </p>
         </div>
 
@@ -84,7 +86,7 @@ export default function AuthSection({
             />
           </div>
 
-          {authView !== "recover" ? (
+          {!isRecover ? (
             <div className="field">
               <label htmlFor="auth-password">Senha</label>
               <input
@@ -97,7 +99,12 @@ export default function AuthSection({
                 required
               />
             </div>
-          ) : null}
+          ) : (
+            <p className="hint">
+              Informe seu e-mail. Se a recuperação automática ainda não estiver disponível, você recebe a
+              orientação pelo atendimento da barbearia.
+            </p>
+          )}
 
           {authView === "register" ? (
             <div className="field">
@@ -119,7 +126,7 @@ export default function AuthSection({
               ? "Entrar"
               : authView === "register"
                 ? "Criar conta"
-                : "Receber instrucoes"}
+                : "Continuar"}
           </button>
 
           <p className="status" aria-live="polite">

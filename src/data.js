@@ -50,7 +50,7 @@ export const services = [
 export const professionals = [
   {
     name: "Foguinho",
-    role: "Barbeiro",
+    role: "Fundador e barbeiro",
     image: `${assetBase}foguinho.jpeg`,
     highlight: "Presenca forte, estilo marcante e assinatura da casa.",
     spotlightTitle: "Identidade forte",
@@ -109,7 +109,7 @@ export const weeklySchedule = {
 };
 
 export const business = {
-  name: "Foguinho Barber",
+  name: "Barbearia do Foguinho",
   phone: "(24) 99874-7229",
   phoneLink: "tel:+5524998747229",
   whatsapp: "https://wa.me/5524998747229",
@@ -125,19 +125,7 @@ export const storageKeys = {
   apiSession: "foguinho-barber-api-session",
   bookings: "foguinho-barber-bookings",
   lastService: "foguinho-barber-last-service",
-  users: "foguinho-barber-users",
-  session: "foguinho-barber-session",
   favorites: "foguinho-barber-favorites",
   notifications: "foguinho-barber-notifications",
   settings: "foguinho-barber-settings"
-};
-
-export const defaultAdmin = {
-  id: "admin-foguinho",
-  name: "Administrador",
-  email: "admin@foguinhobarber.com",
-  phone: business.phone,
-  password: "admin123",
-  role: "admin",
-  createdAt: "2026-04-04T00:00:00.000Z"
 };

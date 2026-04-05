@@ -167,6 +167,7 @@ function AppShell() {
   }));
   const [accountMessage, setAccountMessage] = useState("");
   const [isSessionLoading, setIsSessionLoading] = useState(Boolean(savedSession?.token));
+  const [apiStatus, setApiStatus] = useState("checking");
   const [installPromptEvent, setInstallPromptEvent] = useState(null);
   const [isInstallBannerVisible, setIsInstallBannerVisible] = useState(false);
 
@@ -286,6 +287,29 @@ function AppShell() {
   useEffect(() => {
     let isCancelled = false;
 
+    async function checkApiHealth() {
+      try {
+        await serverApi.health();
+        if (!isCancelled) {
+          setApiStatus("online");
+        }
+      } catch {
+        if (!isCancelled) {
+          setApiStatus("offline");
+        }
+      }
+    }
+
+    checkApiHealth();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+
     async function syncSession() {
       if (!token) {
         clearApiSession();
@@ -300,6 +324,9 @@ function AppShell() {
 
       try {
         const meResponse = await serverApi.me(token);
+        if (!isCancelled) {
+          setApiStatus("online");
+        }
         const nextUser = mapUser(meResponse.user);
         if (isCancelled) {
           return;
@@ -330,6 +357,7 @@ function AppShell() {
           return;
         }
 
+        setApiStatus("offline");
         clearApiSession();
         setToken("");
         setCurrentUser(null);
@@ -365,10 +393,12 @@ function AppShell() {
           professional: formData.profissional
         });
         if (!isCancelled) {
+          setApiStatus("online");
           setAvailabilityBookings(response.bookings.map(mapBooking));
         }
       } catch {
         if (!isCancelled) {
+          setApiStatus("offline");
           setAvailabilityBookings([]);
         }
       }
@@ -789,7 +819,7 @@ function AppShell() {
           <section className="install-banner" aria-label="Instalar aplicativo">
             <div>
               <p className="install-banner-kicker">Atalho no celular</p>
-              <strong>Instale a Foguinho Barber como app</strong>
+              <strong>Instale a Barbearia do Foguinho como app</strong>
               <p className="meta">
                 Abra mais rapido, use em tela cheia e tenha uma experiencia mais parecida com app nativo.
               </p>
@@ -802,6 +832,16 @@ function AppShell() {
                 Agora nao
               </button>
             </div>
+          </section>
+        ) : null}
+
+        {apiStatus === "offline" ? (
+          <section className="card route-status-card route-status-alert" aria-live="polite">
+            <strong>Estamos com dificuldade para falar com a agenda online agora.</strong>
+            <p className="meta">
+              Se voce estiver vendo uma versao antiga do app no celular, feche e abra de novo para forcar
+              a atualizacao. Se continuar, limpe o cache do app instalado.
+            </p>
           </section>
         ) : null}
 

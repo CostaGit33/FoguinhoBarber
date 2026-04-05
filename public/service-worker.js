@@ -1,4 +1,4 @@
-const CACHE_NAME = "foguinho-barber-v2";
+const CACHE_NAME = "barbearia-foguinho-v4";
 const basePath = self.location.pathname.replace(/service-worker\.js$/, "");
 const APP_SHELL = [basePath, `${basePath}manifest.webmanifest`, `${basePath}logo.png`];
 
@@ -16,9 +16,37 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
-  if (request.method !== "GET") {
+  const url = new URL(request.url);
+
+  if (request.method !== "GET" || url.origin !== self.location.origin) {
+    return;
+  }
+
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          return response;
+        })
+        .catch(async () => {
+          const cachedPage = await caches.match(request);
+          return cachedPage || caches.match(basePath);
+        })
+    );
+    return;
+  }
+
+  if (!["script", "style", "image", "font"].includes(request.destination)) {
     return;
   }
 
@@ -29,7 +57,7 @@ self.addEventListener("fetch", (event) => {
       }
 
       return fetch(request).then((response) => {
-        if (!response || response.status !== 200 || response.type !== "basic") {
+        if (!response || response.status !== 200) {
           return response;
         }
 

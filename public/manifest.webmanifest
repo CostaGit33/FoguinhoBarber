@@ -1,7 +1,7 @@
 {
-  "name": "Foguinho Barber",
-  "short_name": "Foguinho",
-  "description": "Agendamento rapido da Foguinho Barber com horarios disponiveis e confirmacao pelo WhatsApp.",
+  "name": "Barbearia do Foguinho",
+  "short_name": "Barbearia do Foguinho",
+  "description": "Agende horario, acompanhe sua agenda e fale com a Barbearia do Foguinho pelo celular.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#050505",

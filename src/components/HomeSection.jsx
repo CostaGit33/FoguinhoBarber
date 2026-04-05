@@ -16,11 +16,11 @@ export default function HomeSection({
       <div className="hero">
         <div className="hero-header">
           <div className="hero-copy">
-            <span className="eyebrow">Barba, cabelo e resenha</span>
-            <h1 id="home-title">Corte na regua, barba alinhada e agendamento sem enrolacao.</h1>
+            <span className="eyebrow">Agendamento simples e direto</span>
+            <h1 id="home-title">Escolha seu barbeiro, veja o horario livre e confirme sem enrolacao.</h1>
             <p className="lead">
-              Escolha um barbeiro, veja o valor do servico e reserve um horario disponivel com mais
-              clareza no celular ou no computador.
+              A home ficou mais leve para voce chegar mais rapido no que interessa: reservar, acompanhar
+              sua agenda e falar com a equipe quando precisar.
             </p>
             <div className="hero-actions">
               <button className="btn hero-primary" type="button" onClick={() => onChangeSection("agendamento")}>

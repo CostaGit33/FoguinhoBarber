@@ -65,10 +65,16 @@ select {
   justify-content: center;
   gap: 16px;
   padding: 18px 16px 12px;
-  font-size: 1.15rem;
+  font-size: 1rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
+  text-align: left;
+}
+
+.brand span {
+  max-width: 18ch;
+  line-height: 1.15;
 }
 
 .brand-logo,
@@ -154,6 +160,14 @@ select {
   display: grid;
   gap: 8px;
   padding: 28px;
+}
+
+.route-status-alert {
+  margin-bottom: 22px;
+  border-color: rgba(255, 255, 255, 0.14);
+  background:
+    radial-gradient(circle at right top, rgba(255, 255, 255, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(24, 24, 24, 0.96), rgba(11, 11, 11, 0.96));
 }
 
 .hero,
@@ -919,13 +933,14 @@ h2 {
   }
 
   .brand {
-    font-size: 0.92rem;
-    letter-spacing: 0.14em;
+    gap: 12px;
+    font-size: 0.84rem;
+    letter-spacing: 0.08em;
   }
 
   .brand-logo {
-    width: 92px;
-    height: 92px;
+    width: 76px;
+    height: 76px;
   }
 
   .mobile-menu-toggle {
