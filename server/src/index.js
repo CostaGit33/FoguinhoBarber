@@ -44,11 +44,12 @@ function checkRateLimit(email) {
 
 app.set("trust proxy", 1);
 
-// CORS DEVE VIR ANTES DE HELMET
-app.use(
-  cors({
+// Configuração CORS Explícita (Similar a .AddDefaultPolicy em .NET)
+function createCorsConfig() {
+  return {
+    // WithOrigins("urls...")
     origin(origin, callback) {
-      // Permite requisições sem origin (ex: mobile, postman, same-origin)
+      // Permite requisições sem origin (mobile apps, curl, postman, same-origin)
       if (!origin) {
         callback(null, true);
         return;
@@ -60,17 +61,29 @@ app.use(
       if (isAllowed) {
         callback(null, true);
       } else {
-        console.warn(`CORS rejected origin: ${normalizedOrigin}`);
-        console.warn(`Allowed origins: ${config.allowedOrigins.join(", ")}`);
-        callback(null, false);
+        console.warn(`[CORS REJECTED] Origin: ${normalizedOrigin}`);
+        console.warn(`[CORS INFO] Allowed origins: ${config.allowedOrigins.join(", ")}`);
+        // NÃO permitir origem desconhecida
+        callback(new Error("Not allowed by CORS"));
       }
     },
+    // WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+    // WithHeaders("Content-Type", "Authorization") + mais alguns úteis
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Accept",
+      "Origin",
+      "X-Requested-With"
+    ],
+    exposedHeaders: ["Content-Length", "Content-Type", "X-Total-Count"],
     credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    exposedHeaders: ["Content-Type"]
-  })
-);
+    maxAge: 86400 // 24 horas - cache de preflight
+  };
+}
+
+app.use(cors(createCorsConfig()));
 
 app.use(helmet());
 app.use(express.json({ limit: "1mb" }));
@@ -361,10 +374,14 @@ async function shutdown(signal) {
   process.exit(0);
 }
 
-console.log(`🔒 CORS Configured - Allowed Origins:`);
+console.log("\n========================================");
+console.log("🔒 CORS Security Policy Configured");
+console.log("========================================");
+console.log(`Allowed Origins (${config.allowedOrigins.length}):`);
 config.allowedOrigins.forEach((origin) => {
-  console.log(`   ✓ ${origin}`);
+  console.log(`  ✓ ${origin}`);
 });
+console.log("========================================\n");
 
 await ensureSchema();
 await ensureAdminUser();
