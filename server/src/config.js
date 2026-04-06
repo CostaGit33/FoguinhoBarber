@@ -12,7 +12,8 @@ function requireEnv(name, fallback = "") {
 }
 
 function normalizeOrigin(origin) {
-  return origin?.trim().replace(/\/$/, "");
+  if (!origin) return null;
+  return origin.trim().toLowerCase().replace(/\/$/, "");
 }
 
 function parseAllowedOrigins() {
@@ -28,11 +29,13 @@ function parseAllowedOrigins() {
     "http://127.0.0.1:5173"
   ]
     .filter(Boolean)
-    .flatMap((value) => value.split(","))
+    .flatMap((value) => value.split(",").map((v) => v.trim()))
     .map(normalizeOrigin)
     .filter(Boolean);
 
-  return [...new Set(configured)];
+  const unique = [...new Set(configured)];
+  console.log(`Allowed CORS origins: ${unique.join(", ")}`);
+  return unique;
 }
 
 export const config = {

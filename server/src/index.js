@@ -47,6 +47,7 @@ app.use(helmet());
 app.use(
   cors({
     origin(origin, callback) {
+      // Permite requisições sem origin (ex: mobile, postman, same-origin)
       if (!origin) {
         callback(null, true);
         return;
@@ -54,9 +55,20 @@ app.use(
 
       const normalizedOrigin = origin.replace(/\/$/, "");
       const isAllowed = config.allowedOrigins.includes(normalizedOrigin);
+      
+      // Log para debug (remover em produção se necessário)
+      if (!isAllowed) {
+        console.warn(`CORS rejected origin: ${normalizedOrigin}`);
+        console.warn(`Allowed origins: ${config.allowedOrigins.join(", ")}`);
+      }
+      
+      // Permitir a requisição mas sem retornar header se não está na lista
       callback(null, isAllowed);
     },
-    credentials: true
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    exposedHeaders: ["Content-Type"]
   })
 );
 app.use(express.json({ limit: "1mb" }));
