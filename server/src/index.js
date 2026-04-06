@@ -43,7 +43,8 @@ function checkRateLimit(email) {
 }
 
 app.set("trust proxy", 1);
-app.use(helmet());
+
+// CORS DEVE VIR ANTES DE HELMET
 app.use(
   cors({
     origin(origin, callback) {
@@ -53,17 +54,16 @@ app.use(
         return;
       }
 
-      const normalizedOrigin = origin.replace(/\/$/, "");
+      const normalizedOrigin = origin.trim().toLowerCase().replace(/\/$/, "");
       const isAllowed = config.allowedOrigins.includes(normalizedOrigin);
       
-      // Log para debug (remover em produção se necessário)
-      if (!isAllowed) {
+      if (isAllowed) {
+        callback(null, true);
+      } else {
         console.warn(`CORS rejected origin: ${normalizedOrigin}`);
         console.warn(`Allowed origins: ${config.allowedOrigins.join(", ")}`);
+        callback(null, false);
       }
-      
-      // Permitir a requisição mas sem retornar header se não está na lista
-      callback(null, isAllowed);
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -71,7 +71,12 @@ app.use(
     exposedHeaders: ["Content-Type"]
   })
 );
+
+app.use(helmet());
 app.use(express.json({ limit: "1mb" }));
+
+// Handle preflight requests explicitamente
+app.options("*", cors());
 
 app.get("/", (_req, res) => {
   res.json({
@@ -81,8 +86,13 @@ app.get("/", (_req, res) => {
 });
 
 app.get("/health", async (_req, res) => {
-  await query("select 1");
-  res.json({ ok: true });
+  try {
+    await query("select 1");
+    res.json({ ok: true, status: "healthy" });
+  } catch (error) {
+    console.error("Health check failed:", error.message);
+    res.status(503).json({ ok: false, status: "unhealthy", error: error.message });
+  }
 });
 
 app.get("/availability", async (req, res) => {
@@ -350,6 +360,11 @@ async function shutdown(signal) {
   await pool.end().catch(() => {});
   process.exit(0);
 }
+
+console.log(`🔒 CORS Configured - Allowed Origins:`);
+config.allowedOrigins.forEach((origin) => {
+  console.log(`   ✓ ${origin}`);
+});
 
 await ensureSchema();
 await ensureAdminUser();
