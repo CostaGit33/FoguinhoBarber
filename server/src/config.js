@@ -40,11 +40,11 @@ export const config = {
   clientUrl: process.env.CLIENT_URL ?? "http://localhost:5173",
   allowedOrigins: parseAllowedOrigins(),
   databaseUrl: requireEnv("DATABASE_URL"),
-  jwtSecret: requireEnv("JWT_SECRET", "dev-secret-change-me"),
+  jwtSecret: requireEnv("JWT_SECRET"),
   admin: {
-    name: process.env.ADMIN_NAME ?? "Administrador",
-    email: (process.env.ADMIN_EMAIL ?? "admin@foguinhobarber.com").toLowerCase(),
-    password: process.env.ADMIN_PASSWORD ?? "admin123",
-    phone: process.env.ADMIN_PHONE ?? "(24) 99874-7229"
+    name: requireEnv("ADMIN_NAME"),
+    email: requireEnv("ADMIN_EMAIL").toLowerCase(),
+    password: requireEnv("ADMIN_PASSWORD"),
+    phone: requireEnv("ADMIN_PHONE")
   }
 };

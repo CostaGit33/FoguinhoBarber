@@ -636,6 +636,11 @@ h2 {
   cursor: not-allowed;
 }
 
+.slot-unavailable {
+  color: #888888;
+  text-decoration: line-through;
+}
+
 .slot-selected {
   background: #ffffff;
   color: #000000;

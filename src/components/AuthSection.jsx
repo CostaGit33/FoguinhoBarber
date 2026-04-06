@@ -2,8 +2,7 @@ import SectionTitle from "./SectionTitle";
 
 const tabs = [
   { id: "login", label: "Login" },
-  { id: "register", label: "Cadastro" },
-  { id: "recover", label: "Recuperar senha" }
+  { id: "register", label: "Cadastro" }
 ];
 
 export default function AuthSection({
@@ -16,8 +15,6 @@ export default function AuthSection({
   onChange,
   onSubmit
 }) {
-  const isRecover = authView === "recover";
-
   return (
     <section
       id="login"
@@ -86,25 +83,18 @@ export default function AuthSection({
             />
           </div>
 
-          {!isRecover ? (
-            <div className="field">
-              <label htmlFor="auth-password">Senha</label>
-              <input
-                id="auth-password"
-                name="password"
-                type="password"
-                placeholder="Sua senha"
-                value={authForm.password}
-                onChange={onChange}
-                required
-              />
-            </div>
-          ) : (
-            <p className="hint">
-              Informe seu e-mail. Se a recuperação automática ainda não estiver disponível, você recebe a
-              orientação pelo atendimento da barbearia.
-            </p>
-          )}
+          <div className="field">
+            <label htmlFor="auth-password">Senha</label>
+            <input
+              id="auth-password"
+              name="password"
+              type="password"
+              placeholder="Sua senha"
+              value={authForm.password}
+              onChange={onChange}
+              required
+            />
+          </div>
 
           {authView === "register" ? (
             <div className="field">

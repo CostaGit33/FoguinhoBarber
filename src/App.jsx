@@ -24,6 +24,9 @@ import AccountSection from "./components/AccountSection";
 import AdminSection from "./components/AdminSection";
 
 const today = new Date().toISOString().split("T")[0];
+const maxDate = new Date();
+maxDate.setDate(maxDate.getDate() + 365);
+const maxDateString = maxDate.toISOString().split("T")[0];
 const installPromptDismissKey = "foguinho-barber-install-dismissed";
 
 const sectionRoutes = {
@@ -39,8 +42,7 @@ const sectionRoutes = {
 
 const authRouteMap = {
   login: "/login",
-  register: "/cadastro",
-  recover: "/recuperar-senha"
+  register: "/cadastro"
 };
 
 const accountRouteMap = {
@@ -177,7 +179,7 @@ function AppShell() {
 
   const pathname = location.pathname;
   const authView =
-    pathname === "/cadastro" ? "register" : pathname === "/recuperar-senha" ? "recover" : "login";
+    pathname === "/cadastro" ? "register" : "login";
   const accountView =
     pathname === "/meus-agendamentos"
       ? "upcoming"
@@ -755,6 +757,7 @@ function AppShell() {
     formData,
     status,
     today,
+    maxDate: maxDateString,
     services,
     professionals,
     selectedProfessional,
@@ -918,21 +921,6 @@ function AppShell() {
             />
             <Route
               path="/cadastro"
-              element={
-                <AuthSection
-                  active
-                  business={business}
-                  authView={authView}
-                  authForm={authForm}
-                  authMessage={authMessage}
-                  onTabChange={setAuthRoute}
-                  onChange={handleAuthChange}
-                  onSubmit={handleAuthSubmit}
-                />
-              }
-            />
-            <Route
-              path="/recuperar-senha"
               element={
                 <AuthSection
                   active

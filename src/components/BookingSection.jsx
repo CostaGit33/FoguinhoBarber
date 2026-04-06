@@ -8,6 +8,7 @@ export default function BookingSection({
   formData,
   status,
   today,
+  maxDate,
   services,
   professionals,
   selectedProfessional,
@@ -135,6 +136,7 @@ export default function BookingSection({
               id="data"
               name="data"
               min={today}
+              max={maxDate}
               value={formData.data}
               onChange={onChange}
               aria-describedby="horario-funcionamento"
@@ -176,8 +178,11 @@ export default function BookingSection({
                   <button
                     key={slot.time}
                     type="button"
-                    className={`slot-button ${formData.hora === slot.time ? "slot-selected" : ""}`}
+                    className={`slot-button ${formData.hora === slot.time ? "slot-selected" : ""}${
+                      !slot.available ? " slot-unavailable" : ""
+                    }`}
                     disabled={!slot.available}
+                    title={!slot.available ? "Horário indisponível" : "Selecionar horário"}
                     onClick={() => onSelectSlot(slot.time)}
                   >
                     {slot.time}

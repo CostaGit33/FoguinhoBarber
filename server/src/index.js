@@ -18,6 +18,30 @@ function isPositiveInteger(value) {
   return Number.isInteger(value) && value > 0;
 }
 
+function isValidFutureDate(dateString) {
+  const bookingDate = new Date(dateString);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const maxDate = new Date(today);
+  maxDate.setDate(maxDate.getDate() + 365);
+  return bookingDate >= today && bookingDate <= maxDate;
+}
+
+const loginAttempts = new Map();
+function checkRateLimit(email) {
+  const attempts = loginAttempts.get(email) || [];
+  const now = Date.now();
+  const recentAttempts = attempts.filter((t) => now - t < 15 * 60 * 1000);
+  
+  if (recentAttempts.length >= 5) {
+    return false;
+  }
+  
+  recentAttempts.push(now);
+  loginAttempts.set(email, recentAttempts);
+  return true;
+}
+
 app.set("trust proxy", 1);
 app.use(helmet());
 app.use(
@@ -47,23 +71,6 @@ app.get("/", (_req, res) => {
 app.get("/health", async (_req, res) => {
   await query("select 1");
   res.json({ ok: true });
-});
-
-app.get("/users-test", async (_req, res) => {
-  const { rows } = await query(
-    `
-      select id, name, email, phone, role, created_at
-      from users
-      order by created_at desc
-      limit 20
-    `
-  );
-
-  res.json({
-    ok: true,
-    total: rows.length,
-    users: rows
-  });
 });
 
 app.get("/availability", async (req, res) => {
@@ -120,6 +127,10 @@ app.post("/auth/login", async (req, res) => {
   }
 
   const normalizedEmail = email.trim().toLowerCase();
+  
+  if (!checkRateLimit(normalizedEmail)) {
+    return res.status(429).json({ message: "Muitas tentativas de login. Tente novamente em 15 minutos." });
+  }
   const { rows } = await query(
     "select id, name, email, phone, role, created_at, password_hash from users where email = $1 limit 1",
     [normalizedEmail]
@@ -225,6 +236,10 @@ app.post("/bookings", requireAuth, async (req, res) => {
 
   if (!isPositiveInteger(normalizedServicePrice) || !isPositiveInteger(normalizedServiceDuration)) {
     return res.status(400).json({ message: "Servico invalido para agendamento." });
+  }
+
+  if (!isValidFutureDate(bookingDate)) {
+    return res.status(400).json({ message: "Data de agendamento invalida. Escolha uma data de hoje ate 365 dias." });
   }
 
   const conflict = await query(
