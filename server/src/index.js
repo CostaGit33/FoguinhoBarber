@@ -45,51 +45,50 @@ function checkRateLimit(email) {
 app.set("trust proxy", 1);
 
 // Configuração CORS Explícita (Similar a .AddDefaultPolicy em .NET)
-function createCorsConfig() {
-  return {
-    // WithOrigins("urls...")
-    origin(origin, callback) {
-      // Permite requisições sem origin (mobile apps, curl, postman, same-origin)
-      if (!origin) {
-        callback(null, true);
-        return;
-      }
+const corsConfig = {
+  // WithOrigins("urls...")
+  origin(origin, callback) {
+    // Permite requisições sem origin (mobile apps, curl, postman, same-origin)
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
 
-      const normalizedOrigin = origin.trim().toLowerCase().replace(/\/$/, "");
-      const isAllowed = config.allowedOrigins.includes(normalizedOrigin);
-      
-      if (isAllowed) {
-        callback(null, true);
-      } else {
-        console.warn(`[CORS REJECTED] Origin: ${normalizedOrigin}`);
-        console.warn(`[CORS INFO] Allowed origins: ${config.allowedOrigins.join(", ")}`);
-        // NÃO permitir origem desconhecida
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    // WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
-    // WithHeaders("Content-Type", "Authorization") + mais alguns úteis
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "Accept",
-      "Origin",
-      "X-Requested-With"
-    ],
-    exposedHeaders: ["Content-Length", "Content-Type", "X-Total-Count"],
-    credentials: true,
-    maxAge: 86400 // 24 horas - cache de preflight
-  };
-}
+    const normalizedOrigin = origin.trim().toLowerCase().replace(/\/$/, "");
+    const isAllowed = config.allowedOrigins.includes(normalizedOrigin);
+    
+    console.log(`[CORS CHECK] Origin: ${normalizedOrigin} | Allowed: ${isAllowed}`);
+    
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      console.warn(`[CORS REJECTED] Origin: ${normalizedOrigin}`);
+      console.warn(`[CORS INFO] Allowed list: ${config.allowedOrigins.join(", ")}`);
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  // WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+  methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+  // WithHeaders("Content-Type", "Authorization") + mais alguns úteis
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "Accept",
+    "Origin",
+    "X-Requested-With"
+  ],
+  exposedHeaders: ["Content-Length", "Content-Type", "X-Total-Count"],
+  credentials: true,
+  maxAge: 86400 // 24 horas - cache de preflight
+};
 
-app.use(cors(createCorsConfig()));
+app.use(cors(corsConfig));
 
 app.use(helmet());
 app.use(express.json({ limit: "1mb" }));
 
-// Handle preflight requests explicitamente
-app.options("*", cors());
+// Handle preflight requests explicitamente com a MESMA config
+app.options("*", cors(corsConfig));
 
 app.get("/", (_req, res) => {
   res.json({
