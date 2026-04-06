@@ -358,12 +358,24 @@ app.get("/admin/users", requireAuth, requireAdmin, async (_req, res) => {
 });
 
 app.use((_req, res) => {
-  res.status(404).json({ message: "Rota nao encontrada." });
+  res.status(404).json({ 
+    ok: false,
+    message: "Rota nao encontrada." 
+  });
 });
 
 app.use((error, _req, res, _next) => {
-  console.error(error);
-  res.status(500).json({ message: "Erro interno no servidor." });
+  console.error(`[ERROR] ${error.message}`);
+  console.error(error.stack);
+  
+  const status = error.status || 500;
+  const message = error.message || "Erro interno no servidor.";
+  
+  res.status(status).json({ 
+    ok: false,
+    message,
+    ...(process.env.NODE_ENV === "development" && { error: error.message })
+  });
 });
 
 async function shutdown(signal) {
@@ -386,8 +398,13 @@ await ensureSchema();
 await ensureAdminUser();
 
 activeServer.instance = app.listen(config.port, () => {
-  console.log(`API online na porta ${config.port}`);
-  console.log(`Origens liberadas: ${config.allowedOrigins.join(", ")}`);
+  console.log("\n========================================");
+  console.log(`✅ API ONLINE - Barbearia do Foguinho`);
+  console.log("========================================");
+  console.log(`🚪 Port: ${config.port}`);
+  console.log(`🌍 Node Env: ${process.env.NODE_ENV || "development"}`);
+  console.log(`🔐 CORS enabled for ${config.allowedOrigins.length} origins`);
+  console.log("========================================\n");
 });
 
 process.on("SIGTERM", () => {

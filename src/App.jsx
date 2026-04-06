@@ -294,14 +294,34 @@ function AppShell() {
     let isCancelled = false;
 
     async function checkApiHealth() {
-      try {
-        await serverApi.health();
-        if (!isCancelled) {
-          setApiStatus("online");
-        }
-      } catch {
-        if (!isCancelled) {
-          setApiStatus("offline");
+      const maxRetries = 3;
+      let lastError = null;
+      
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`[API Health] Tentativa ${attempt}/${maxRetries}...`);
+          await serverApi.health();
+          if (!isCancelled) {
+            console.log(`✅ [API Health] Online!`);
+            setApiStatus("online");
+          }
+          return; // Sucesso, sair do loop
+        } catch (error) {
+          lastError = error;
+          console.warn(`⚠️ [API Health] Tentativa ${attempt} falhou:`, error.message);
+          
+          // Se for a última tentativa, marcar como offline
+          if (attempt === maxRetries) {
+            if (!isCancelled) {
+              console.error(`❌ [API Health] Falhou após ${maxRetries} tentativas`);
+              setApiStatus("offline");
+            }
+          } else {
+            // Aguardar antes de tentar novamente (exponential backoff)
+            const delayMs = 1000 * Math.pow(2, attempt - 1);
+            console.log(`⏳ [API Health] Aguardando ${delayMs}ms antes da próxima tentativa...`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+          }
         }
       }
     }

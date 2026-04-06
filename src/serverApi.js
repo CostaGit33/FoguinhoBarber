@@ -21,7 +21,10 @@ export async function apiRequest(path, { method = "GET", token, body } = {}) {
 
   let response;
   try {
-    response = await fetch(`${apiBaseUrl}${path}`, {
+    const requestUrl = `${apiBaseUrl}${path}`;
+    console.log(`[API] ${method} ${requestUrl}`);
+    
+    response = await fetch(requestUrl, {
       method,
       headers: {
         ...buildHeaders(token),
@@ -29,16 +32,30 @@ export async function apiRequest(path, { method = "GET", token, body } = {}) {
       },
       body: body ? JSON.stringify(body) : undefined
     });
-  } catch {
-    const error = new Error("Nao foi possivel conectar com a API.");
-    error.isNetworkError = true;
-    throw error;
+    
+    console.log(`[API Response] ${response.status} ${response.statusText}`);
+  } catch (error) {
+    console.error(`[API Error] Nao foi possivel conectar:`, error.message);
+    const err = new Error(`Nao foi possivel conectar com a API: ${error.message}`);
+    err.isNetworkError = true;
+    err.originalError = error;
+    throw err;
   }
 
-  const data = await response.json().catch(() => ({}));
+  // Tentar parsear response
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    data = {};
+  }
+  
   if (!response.ok) {
-    const error = new Error(data.message ?? "Erro na API.");
+    const errorMsg = data.message ?? `HTTP ${response.status}`;
+    console.error(`[API Error] ${method} ${path} - ${errorMsg}`);
+    const error = new Error(errorMsg);
     error.status = response.status;
+    error.response = data;
     throw error;
   }
 
