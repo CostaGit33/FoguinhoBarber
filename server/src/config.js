@@ -25,7 +25,7 @@ function parseAllowedOrigins() {
     "https://barbeariadofoguinho.online",
     "https://www.barbeariadofoguinho.online",
     "https://scraper-foguinho-frontend.dybxu9.easypanel.host",
-    // Variantes adicionais para garantir cobertura
+    "https://foguinhobarber.vercel.app",
     "http://barbeariadofoguinho.online",
     "http://www.barbeariadofoguinho.online"
   ];
