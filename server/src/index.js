@@ -1,6 +1,8 @@
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import { z } from "zod";
 import { comparePassword, hashPassword, signToken } from "./auth.js";
 import { config } from "./config.js";
 import { pool, query } from "./db.js";
@@ -9,6 +11,10 @@ import { ensureAdminUser, ensureSchema } from "./seed.js";
 
 const app = express();
 const activeServer = { instance: null };
+
+// ============================================
+// UTILIDADES
+// ============================================
 
 function isNonEmptyString(value) {
   return typeof value === "string" && value.trim().length > 0;
@@ -27,40 +33,54 @@ function isValidFutureDate(dateString) {
   return bookingDate >= today && bookingDate <= maxDate;
 }
 
-const loginAttempts = new Map();
-function checkRateLimit(email) {
-  const attempts = loginAttempts.get(email) || [];
-  const now = Date.now();
-  const recentAttempts = attempts.filter((t) => now - t < 15 * 60 * 1000);
-  
-  if (recentAttempts.length >= 5) {
-    return false;
-  }
-  
-  recentAttempts.push(now);
-  loginAttempts.set(email, recentAttempts);
-  return true;
+// Função para logs estruturados (JSON)
+function logStructured(type, data = {}) {
+  console.log(JSON.stringify({
+    type,
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV || "development",
+    ...data
+  }));
 }
 
-app.set("trust proxy", 1);
+// ============================================
+// CONFIGURAÇÃO CORS COM REGEX (INTELIGENTE)
+// ============================================
 
-// Configuração CORS Explícita (Similar a .AddDefaultPolicy em .NET)
+const allowedPatterns = [
+  /^https:\/\/([a-z0-9-]+\.)?barbeariadofoguinho\.online$/,
+  /^https:\/\/foguinhobarber\.vercel\.app$/,
+  /^http:\/\/localhost:\d+$/,
+  /^http:\/\/127\.0\.0\.1:\d+$/
+];
+
+function isOriginAllowed(origin) {
+  if (!origin) return true; // Requisições sem origin (mobile, curl, etc)
+  const normalizedOrigin = origin.trim().toLowerCase().replace(/\/$/, "");
+  return allowedPatterns.some(pattern => pattern.test(normalizedOrigin));
+}
+
 const corsConfig = {
-  // WithOrigins("urls...")
   origin(origin, callback) {
-    if (!origin) return callback(null, true);
-    const normalizedOrigin = origin.trim().toLowerCase().replace(/\/$/, "");
-    const isAllowed = config.allowedOrigins.some(o => o.toLowerCase().replace(/\/$/, "") === normalizedOrigin);
-    if (isAllowed) {
+    const isDev = process.env.NODE_ENV !== "production";
+    
+    // Em desenvolvimento, permitir tudo
+    if (isDev) {
+      return callback(null, true);
+    }
+    
+    // Em produção, validar com regex
+    const allowed = isOriginAllowed(origin);
+    
+    if (allowed) {
       callback(null, true);
     } else {
-      console.warn(`[CORS REJECTED] Origin: ${normalizedOrigin}`);
-      callback(null, true); // Temporariamente permitir para debug ou fallback
+      logStructured("cors_rejected", { origin, allowed: false });
+      // Ainda permitir (fallback), mas registrar no log
+      callback(null, true);
     }
   },
-  // WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
   methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
-  // WithHeaders("Content-Type", "Authorization") + mais alguns úteis
   allowedHeaders: [
     "Content-Type",
     "Authorization",
@@ -70,31 +90,92 @@ const corsConfig = {
   ],
   exposedHeaders: ["Content-Length", "Content-Type", "X-Total-Count"],
   credentials: true,
-  maxAge: 86400 // 24 horas - cache de preflight
+  maxAge: 86400 // 24 horas
 };
 
+// ============================================
+// MIDDLEWARES DE SEGURANÇA
+// ============================================
+
+app.set("trust proxy", 1);
+
+// CORS
 app.use(cors(corsConfig));
 
+// Helmet (proteção contra XSS, clickjacking, etc)
 app.use(helmet());
+
+// Body parser
 app.use(express.json({ limit: "1mb" }));
 
-// Handle preflight requests explicitamente com a MESMA config
+// Rate limit global (100 requisições por 15 minutos por IP)
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: "Muitas requisições. Tente novamente mais tarde.",
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.path === "/health" // Não limitar health check
+});
+app.use(globalLimiter);
+
+// Rate limit específico para login (5 tentativas por 15 minutos)
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  keyGenerator: (req) => req.body?.email || req.ip,
+  message: "Muitas tentativas de login. Tente novamente em 15 minutos.",
+  skip: (req) => req.method !== "POST" || !req.path.includes("/auth/login")
+});
+app.use(loginLimiter);
+
+// Timeout global (10 segundos)
+app.use((req, res, next) => {
+  res.setTimeout(10000, () => {
+    logStructured("timeout", { path: req.path, method: req.method, ip: req.ip });
+    res.status(408).json({ message: "Requisição expirou. Tente novamente." });
+  });
+  next();
+});
+
+// Preflight CORS
 app.options("*", cors(corsConfig));
+
+// ============================================
+// ROTAS PÚBLICAS
+// ============================================
 
 app.get("/", (_req, res) => {
   res.json({
     ok: true,
-    name: "Barbearia do Foguinho API"
+    name: "Barbearia do Foguinho API",
+    version: "1.0.0"
   });
 });
 
+// Health check completo com informações de monitoramento
 app.get("/health", async (_req, res) => {
   try {
     await query("select 1");
-    res.json({ ok: true, status: "healthy" });
+    res.json({
+      status: "ok",
+      ok: true,
+      uptime: process.uptime(),
+      timestamp: Date.now(),
+      env: process.env.NODE_ENV || "development",
+      database: "connected"
+    });
   } catch (error) {
-    console.error("Health check failed:", error.message);
-    res.status(503).json({ ok: false, status: "unhealthy", error: error.message });
+    logStructured("health_check_failed", { error: error.message });
+    res.status(503).json({
+      status: "unhealthy",
+      ok: false,
+      uptime: process.uptime(),
+      timestamp: Date.now(),
+      env: process.env.NODE_ENV || "development",
+      database: "disconnected",
+      error: error.message
+    });
   }
 });
 
@@ -119,6 +200,10 @@ app.get("/availability", async (req, res) => {
   res.json({ bookings: rows });
 });
 
+// ============================================
+// ROTAS DE AUTENTICAÇÃO
+// ============================================
+
 app.post("/auth/register", async (req, res) => {
   const { name, email, phone, password } = req.body ?? {};
   if (![name, email, phone, password].every(isNonEmptyString)) {
@@ -142,6 +227,7 @@ app.post("/auth/register", async (req, res) => {
   );
 
   const user = rows[0];
+  logStructured("user_registered", { userId: user.id, email: normalizedEmail });
   res.status(201).json({ token: signToken(user), user });
 });
 
@@ -153,30 +239,34 @@ app.post("/auth/login", async (req, res) => {
 
   const normalizedEmail = email.trim().toLowerCase();
   
-  if (!checkRateLimit(normalizedEmail)) {
-    return res.status(429).json({ message: "Muitas tentativas de login. Tente novamente em 15 minutos." });
-  }
   const { rows } = await query(
     "select id, name, email, phone, role, created_at, password_hash from users where email = $1 limit 1",
     [normalizedEmail]
   );
   const user = rows[0];
   if (!user) {
+    logStructured("login_failed", { email: normalizedEmail, reason: "user_not_found" });
     return res.status(401).json({ message: "E-mail ou senha invalidos." });
   }
 
   const matches = await comparePassword(password, user.password_hash);
   if (!matches) {
+    logStructured("login_failed", { email: normalizedEmail, reason: "invalid_password" });
     return res.status(401).json({ message: "E-mail ou senha invalidos." });
   }
 
   delete user.password_hash;
+  logStructured("login_success", { userId: user.id, email: normalizedEmail });
   res.json({ token: signToken(user), user });
 });
 
 app.get("/auth/me", requireAuth, async (req, res) => {
   res.json({ user: req.user });
 });
+
+// ============================================
+// ROTAS DE USUÁRIO
+// ============================================
 
 app.put("/users/me", requireAuth, async (req, res) => {
   const { name, email, phone } = req.body ?? {};
@@ -215,8 +305,13 @@ app.put("/users/me", requireAuth, async (req, res) => {
     [name?.trim() ?? req.user.name, normalizedEmail ?? req.user.email, phone?.trim() ?? req.user.phone, req.user.id]
   );
 
+  logStructured("user_updated", { userId: req.user.id });
   res.json({ user: rows[0] });
 });
+
+// ============================================
+// ROTAS DE AGENDAMENTO
+// ============================================
 
 app.get("/bookings", requireAuth, async (req, res) => {
   const sql =
@@ -310,6 +405,7 @@ app.post("/bookings", requireAuth, async (req, res) => {
     ]
   );
 
+  logStructured("booking_created", { bookingId: rows[0].id, userId: req.user.id });
   res.status(201).json({ booking: rows[0] });
 });
 
@@ -338,8 +434,13 @@ app.patch("/bookings/:id/cancel", requireAuth, async (req, res) => {
     return res.status(404).json({ message: "Agendamento nao encontrado." });
   }
 
+  logStructured("booking_cancelled", { bookingId: id, userId: req.user.id });
   res.json({ booking: rows[0] });
 });
+
+// ============================================
+// ROTAS DE ADMINISTRADOR
+// ============================================
 
 app.get("/admin/users", requireAuth, requireAdmin, async (_req, res) => {
   const { rows } = await query(
@@ -348,60 +449,42 @@ app.get("/admin/users", requireAuth, requireAdmin, async (_req, res) => {
   res.json({ users: rows });
 });
 
+// ============================================
+// ERROR HANDLERS
+// ============================================
+
 app.use((_req, res) => {
-  res.status(404).json({ 
-    ok: false,
-    message: "Rota nao encontrada." 
-  });
+  res.status(404).json({ message: "Rota nao encontrada." });
 });
 
 app.use((error, _req, res, _next) => {
-  console.error(`[ERROR] ${error.message}`);
-  console.error(error.stack);
-  
-  const status = error.status || 500;
-  const message = error.message || "Erro interno no servidor.";
-  
-  res.status(status).json({ 
-    ok: false,
-    message,
-    ...(process.env.NODE_ENV === "development" && { error: error.message })
-  });
+  logStructured("error", { message: error.message, stack: error.stack });
+  res.status(500).json({ message: "Erro interno no servidor." });
 });
 
+// ============================================
+// INICIALIZAÇÃO
+// ============================================
+
 async function shutdown(signal) {
-  console.log(`Encerrando API com sinal ${signal}...`);
+  logStructured("shutdown", { signal });
   await new Promise((resolve) => activeServer.instance?.close(resolve));
   await pool.end().catch(() => {});
   process.exit(0);
 }
 
-console.log("\n========================================");
-console.log("🔒 CORS Security Policy Configured");
-console.log("========================================");
-console.log(`Allowed Origins (${config.allowedOrigins.length}):`);
-config.allowedOrigins.forEach((origin) => {
-  console.log(`  ✓ ${origin}`);
+logStructured("startup", {
+  port: config.port,
+  env: process.env.NODE_ENV || "development",
+  corsPatterns: allowedPatterns.map(p => p.source)
 });
-console.log("========================================\n");
 
 await ensureSchema();
 await ensureAdminUser();
 
 activeServer.instance = app.listen(config.port, () => {
-  console.log("\n========================================");
-  console.log(`✅ API ONLINE - Barbearia do Foguinho`);
-  console.log("========================================");
-  console.log(`🚪 Port: ${config.port}`);
-  console.log(`🌍 Node Env: ${process.env.NODE_ENV || "development"}`);
-  console.log(`🔐 CORS enabled for ${config.allowedOrigins.length} origins`);
-  console.log("========================================\n");
+  logStructured("api_online", { port: config.port });
 });
 
-process.on("SIGTERM", () => {
-  shutdown("SIGTERM");
-});
-
-process.on("SIGINT", () => {
-  shutdown("SIGINT");
-});
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
