@@ -99,23 +99,41 @@ const corsConfig = {
 
 app.set("trust proxy", 1);
 
-// CORS
+// Helmet (proteção contra XSS, clickjacking, etc)
+// Desabilitamos o crossOriginResourcePolicy para não conflitar com o CORS
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+}));
+
+// CORS deve vir LOGO APÓS o helmet e ANTES de qualquer rota ou rate limit
 app.use(cors(corsConfig));
 
-// Helmet (proteção contra XSS, clickjacking, etc)
-app.use(helmet());
+// Log de requisições para depurar CORS
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    const allowed = isOriginAllowed(origin);
+    logStructured("request_origin", { 
+      origin, 
+      path: req.path, 
+      method: req.method,
+      allowed 
+    });
+  }
+  next();
+});
 
 // Body parser
 app.use(express.json({ limit: "1mb" }));
 
-// Rate limit global (100 requisições por 15 minutos por IP)
+// Rate limit global (Aumentado para evitar bloqueios em produção)
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 1000, // Aumentado de 100 para 1000
   message: "Muitas requisições. Tente novamente mais tarde.",
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.path === "/health" // Não limitar health check
+  skip: (req) => req.path === "/health" || req.path === "/"
 });
 app.use(globalLimiter);
 
