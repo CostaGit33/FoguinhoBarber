@@ -3,14 +3,12 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
+
+  // Base padrão para deploy em domínio raiz
   base: "/",
-  preview: {
+
+  server: {
     host: "0.0.0.0",
-    port: 80,
-    allowedHosts: [
-      "barbeariadofoguinho.online",
-      "www.barbeariadofoguinho.online",
-      "scraper-foguinho-frontend.dybxu9.easypanel.host"
-    ]
+    port: 5173
   }
 });
