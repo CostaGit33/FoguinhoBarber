@@ -30,7 +30,8 @@ export async function apiRequest(path, { method = "GET", token, body } = {}) {
         ...buildHeaders(token),
         ...(body ? { "Content-Type": "application/json" } : {})
       },
-      body: body ? JSON.stringify(body) : undefined
+      body: body ? JSON.stringify(body) : undefined,
+      credentials: "include" // Necessário para CORS com credentials: true no backend
     });
     
     console.log(`[API Response] ${response.status} ${response.statusText}`);
