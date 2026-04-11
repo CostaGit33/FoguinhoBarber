@@ -3,12 +3,7 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-
-  // Base padrão para deploy em domínio raiz
-  base: "/",
-
   server: {
-    host: "0.0.0.0",
-    port: 5173
+    host: true
   }
 });
