@@ -1,23 +1,29 @@
 import express from "express";
 import cors from "cors";
 import path from "path";
+import { fileURLToPath } from "url";
 
+// =========================
+// FIX __dirname (ESM)
+// =========================
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// =========================
+// APP
+// =========================
 const app = express();
-
-// =========================
-// CONFIG
-// =========================
 const PORT = process.env.PORT || 4000;
 
+// =========================
+// CORS CONFIG
+// =========================
 const allowedOrigins = [
   "https://barbeariadofoguinho.online",
   "https://www.barbeariadofoguinho.online",
   "http://localhost:5173"
 ];
 
-// =========================
-// MIDDLEWARES
-// =========================
 app.use(express.json());
 
 app.use(cors({
@@ -25,35 +31,60 @@ app.use(cors({
     if (!origin) return callback(null, true);
 
     if (allowedOrigins.includes(origin)) {
-      callback(null, true);
+      return callback(null, true);
     } else {
-      callback(new Error("CORS bloqueado: " + origin));
+      return callback(new Error("CORS bloqueado: " + origin));
     }
   },
   credentials: true
 }));
 
 // =========================
-// ROTAS
+// ROTAS API
 // =========================
-app.get("/health", (req, res) => {
+
+// health check
+app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-// exemplo login
-app.post("/auth/login", (req, res) => {
-  return res.json({ message: "login ok (mock)" });
+// auth (mock)
+app.post("/api/auth/login", (req, res) => {
+  res.json({ message: "login ok (mock)" });
 });
 
 // =========================
-// SERVIR FRONTEND (IMPORTANTE)
+// BARBEIROS (TESTE REAL)
 // =========================
-const __dirname = new URL('.', import.meta.url).pathname;
+app.get("/api/barbers", (req, res) => {
+  res.json([
+    {
+      id: 1,
+      nome: "João Fade",
+      avaliacao: 4.8,
+      preco: 30,
+      distancia: "1.2km"
+    },
+    {
+      id: 2,
+      nome: "Carlos Corte",
+      avaliacao: 4.6,
+      preco: 40,
+      distancia: "2.0km"
+    }
+  ]);
+});
 
-app.use(express.static(path.join(__dirname, "../../dist")));
+// =========================
+// SERVIR FRONTEND
+// =========================
+const distPath = path.join(__dirname, "../../dist");
 
+app.use(express.static(distPath));
+
+// ⚠️ fallback só depois das APIs
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../../dist/index.html"));
+  res.sendFile(path.join(distPath, "index.html"));
 });
 
 // =========================
