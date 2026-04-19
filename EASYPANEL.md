@@ -109,6 +109,8 @@ Registros recomendados:
 - o banco deve continuar interno, sem dominio publico
 - a API ja esta online e pronta para ser conectada ao frontend
 
-## 6. Proximo passo recomendado
+## 6. Estado atual
 
-Hoje o frontend ainda usa a logica local como principal. A proxima etapa ideal e migrar login, perfil e agendamentos para consumir a API real com PostgreSQL.
+- o frontend React/Vite e a API Node/PostgreSQL formam agora a stack principal do projeto
+- a agenda, autenticacao, perfil e listagem administrativa devem ser mantidos nessa estrutura
+- qualquer codigo legado fora dessa stack deve permanecer removido para evitar conflitos

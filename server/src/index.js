@@ -18,6 +18,34 @@ function isPositiveInteger(value) {
   return Number.isInteger(value) && value > 0;
 }
 
+function normalizeEmail(email) {
+  return email.trim().toLowerCase();
+}
+
+function isValidTimeString(value) {
+  return /^\d{2}:\d{2}$/.test(value);
+}
+
+function timeToMinutes(value) {
+  const [hours, minutes] = value.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function hasBookingConflict(existingBookings, bookingTime, duration, ignoreBookingId = null) {
+  const nextStart = timeToMinutes(bookingTime);
+  const nextEnd = nextStart + duration;
+
+  return existingBookings.some((booking) => {
+    if (ignoreBookingId && booking.id === ignoreBookingId) {
+      return false;
+    }
+
+    const currentStart = timeToMinutes(String(booking.booking_time).slice(0, 5));
+    const currentEnd = currentStart + Number(booking.service_duration);
+    return nextStart < currentEnd && nextEnd > currentStart;
+  });
+}
+
 function isValidFutureDate(dateString) {
   const bookingDate = new Date(dateString);
   const today = new Date();
@@ -162,6 +190,208 @@ app.post("/auth/login", async (req, res) => {
 
 app.get("/auth/me", requireAuth, (req, res) => {
   res.json({ user: req.user });
+});
+
+app.get("/availability", async (req, res) => {
+  const { date, professional } = req.query ?? {};
+
+  if (!isNonEmptyString(date) || !isNonEmptyString(professional) || !isValidFutureDate(date)) {
+    return res.status(400).json({ message: "Parametros de disponibilidade invalidos." });
+  }
+
+  const { rows } = await query(
+    `
+      select *
+      from bookings
+      where booking_date = $1
+        and professional_name = $2
+        and status = 'scheduled'
+      order by booking_time asc, created_at asc
+    `,
+    [date, professional.trim()]
+  );
+
+  res.json({ bookings: rows });
+});
+
+app.put("/users/me", requireAuth, async (req, res) => {
+  const { name, email, phone } = req.body ?? {};
+
+  if (![name, email, phone].every(isNonEmptyString)) {
+    return res.status(400).json({ message: "Dados invalidos." });
+  }
+
+  const normalizedEmail = normalizeEmail(email);
+  const { rows: existingUsers } = await query(
+    "select id from users where email = $1 and id <> $2 limit 1",
+    [normalizedEmail, req.user.id]
+  );
+
+  if (existingUsers[0]) {
+    return res.status(409).json({ message: "Email ja existe." });
+  }
+
+  const { rows } = await query(
+    `
+      update users
+      set name = $1,
+          email = $2,
+          phone = $3
+      where id = $4
+      returning id, name, email, phone, role, created_at
+    `,
+    [name.trim(), normalizedEmail, phone.trim(), req.user.id]
+  );
+
+  res.json({ user: rows[0] });
+});
+
+app.get("/bookings", requireAuth, async (req, res) => {
+  const params = [];
+  let whereClause = "";
+
+  if (req.user.role !== "admin") {
+    params.push(req.user.id, req.user.email);
+    whereClause = "where user_id = $1 or customer_email = $2";
+  }
+
+  const { rows } = await query(
+    `
+      select *
+      from bookings
+      ${whereClause}
+      order by booking_date asc, booking_time asc, created_at asc
+    `,
+    params
+  );
+
+  res.json({ bookings: rows });
+});
+
+app.post("/bookings", requireAuth, async (req, res) => {
+  const {
+    customerName,
+    customerPhone,
+    serviceName,
+    servicePrice,
+    serviceDuration,
+    professionalName,
+    bookingDate,
+    bookingTime
+  } = req.body ?? {};
+
+  if (
+    ![customerName, customerPhone, serviceName, professionalName, bookingDate, bookingTime].every(isNonEmptyString) ||
+    !isPositiveInteger(Number(servicePrice)) ||
+    !isPositiveInteger(Number(serviceDuration)) ||
+    !isValidFutureDate(bookingDate) ||
+    !isValidTimeString(bookingTime)
+  ) {
+    return res.status(400).json({ message: "Dados do agendamento invalidos." });
+  }
+
+  const normalizedDuration = Number(serviceDuration);
+  const normalizedPrice = Number(servicePrice);
+
+  const { rows: dayBookings } = await query(
+    `
+      select id, booking_time, service_duration
+      from bookings
+      where booking_date = $1
+        and professional_name = $2
+        and status = 'scheduled'
+      order by booking_time asc
+    `,
+    [bookingDate, professionalName.trim()]
+  );
+
+  if (hasBookingConflict(dayBookings, bookingTime, normalizedDuration)) {
+    return res.status(409).json({ message: "Esse horario nao esta mais disponivel." });
+  }
+
+  const { rows } = await query(
+    `
+      insert into bookings (
+        user_id,
+        customer_name,
+        customer_email,
+        customer_phone,
+        service_name,
+        service_price,
+        service_duration,
+        professional_name,
+        booking_date,
+        booking_time,
+        status
+      )
+      values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'scheduled')
+      returning *
+    `,
+    [
+      req.user.id,
+      customerName.trim(),
+      req.user.email,
+      customerPhone.trim(),
+      serviceName.trim(),
+      normalizedPrice,
+      normalizedDuration,
+      professionalName.trim(),
+      bookingDate,
+      bookingTime
+    ]
+  );
+
+  res.status(201).json({ booking: rows[0] });
+});
+
+app.patch("/bookings/:id/cancel", requireAuth, async (req, res) => {
+  const { id } = req.params;
+  const { rows } = await query(
+    "select * from bookings where id = $1 limit 1",
+    [id]
+  );
+
+  const booking = rows[0];
+
+  if (!booking) {
+    return res.status(404).json({ message: "Agendamento nao encontrado." });
+  }
+
+  const isOwner =
+    booking.user_id === req.user.id ||
+    (booking.customer_email && booking.customer_email === req.user.email);
+
+  if (req.user.role !== "admin" && !isOwner) {
+    return res.status(403).json({ message: "Voce nao pode cancelar este agendamento." });
+  }
+
+  if (booking.status === "cancelled") {
+    return res.json({ booking });
+  }
+
+  const { rows: updatedRows } = await query(
+    `
+      update bookings
+      set status = 'cancelled'
+      where id = $1
+      returning *
+    `,
+    [id]
+  );
+
+  res.json({ booking: updatedRows[0] });
+});
+
+app.get("/admin/users", requireAuth, requireAdmin, async (_req, res) => {
+  const { rows } = await query(
+    `
+      select id, name, email, phone, role, created_at
+      from users
+      order by created_at desc
+    `
+  );
+
+  res.json({ users: rows });
 });
 
 app.use((_req, res) => {
